@@ -49,13 +49,11 @@ global class CartOrchestrator extends CartExtension.CartCalculate {
         }
 
         if (runPromotions) {
-            /*
             promotions(calculatorRequest);
 
             if (hasErrorLevelCartValidationOutput(cart.getCartValidationOutputs(), CartExtension.CartValidationOutputTypeEnum.PROMOTIONS)) {
                 return;
             }
-            */
         }
 
         if (runInventory) {
@@ -83,7 +81,7 @@ global class CartOrchestrator extends CartExtension.CartCalculate {
         }
 
         if (runTaxes) {
-            // taxes(calculatorRequest);
+            taxes(calculatorRequest);
         }
     }
 
