@@ -12,7 +12,7 @@
 // For more information related to that, please see the corresponding documentation.
 
 // This must implement the commercestoretax.TaxService class in order to be processed by the tax service flow.
-public class ServiceTaxPricingDefault extends commercestoretax.TaxService {
+public class ServiceTaxDefault extends commercestoretax.TaxService {
     // You MUST change this to be your service.
     // and add the host in Setup | Security | Remote site settings.
     private static String httpHost = 'https://example.com';
