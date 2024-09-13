@@ -1,8 +1,15 @@
+/**
+ * @description       : 
+ * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+ * @group             : 
+ * @last modified on  : 09-12-2024
+ * @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+**/
 // This tax calculator extension class makes a call to an external service to retrieve tax
 // information for a cart item and its adjustments and saves it to a cart data transfer object
 // (DTO). For a tax calculator extension to be processed by the checkout flow, you must implement the
 // CartExtension.TaxCartCalculator class.
-public class CartCalcDefaultTax extends CartExtension.TaxCartCalculator {
+public class CartCalcTaxDefault extends CartExtension.TaxCartCalculator {
 
 // You MUST change this to be your service or you must launch your own Third Party Service
 // and add the host in Setup | Security | Remote site settings.

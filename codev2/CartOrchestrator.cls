@@ -41,6 +41,9 @@ global class CartOrchestrator extends CartExtension.CartCalculate {
         CartExtension.CartCalculateCalculatorRequest calculatorRequest = new CartExtension.CartCalculateCalculatorRequest(cart, request.getOptionalBuyerActionDetails());
 
         if (runPricing) {
+
+            System.debug('### runPricing');
+
             prices(calculatorRequest);
 
             if (hasErrorLevelCartValidationOutput(cart.getCartValidationOutputs(), CartExtension.CartValidationOutputTypeEnum.PRICING)) {
