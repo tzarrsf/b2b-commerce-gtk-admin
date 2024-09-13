@@ -1,3 +1,10 @@
+/**
+ * @description       : 
+ * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+ * @group             : 
+ * @last modified on  : 09-12-2024
+ * @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+**/
 // This sample is for the situation when the pricing behavior needs to be extended or overriden via
 // the extension point for Salesorce Internal Pricing Api. For Salesforce Internal Price
 // calculation, please see the corresponding documentation.
@@ -6,9 +13,9 @@
 // must be linked to the webstore via appropriate setup. For more information related to that,
 // please see the corresponding documentation.
 
-// This must implement the commercestorepricing.PricingService class in order to be processed by the
+// This must implement the commercestorepricing.ServicePricingDefault class in order to be processed by the
 // pricing flow.
-public class PriceStoreExtension extends commercestorepricing.PricingService {
+public class ServicePricingDefault extends commercestorepricing.PricingService {
   // You MUST change this to be your service or you must launch your own Third Party Service
   // and add the host in Setup | Security | Remote site settings.
   private static String externalPricingServiceHost = 'https://example.com';

@@ -1,10 +1,17 @@
+/**
+ * @description       : 
+ * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+ * @group             : 
+ * @last modified on  : 09-12-2024
+ * @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+**/
 // This sample is for the situations where Shipping Calculation needs to be extended or overridden
 // via the extension point for the Shipping Calculator. The Custom Apex Class must be linked to the
 // Shipping Calculator extension point and then the integration must be linked to the webstore via
 // appropriate Setup
 
 // This class must extend the CartExtension.ShippingCartCalculator class to be processed.
-public class CartCalcShipping extends CartExtension.ShippingCartCalculator {
+public class CartCalcShippingDefault extends CartExtension.ShippingCartCalculator {
   // You MUST change this to be your service or you must launch your own Third Party Service
   // and add the host in Setup | Security | Remote site settings.
   private static String externalShippingServiceHost = 'https://example.com';
@@ -203,7 +210,7 @@ public class CartCalcShipping extends CartExtension.ShippingCartCalculator {
 
 
   private void populateCartDeliveryGroupMethodWithShippingOptions(
-   List<CartCalcShipping.ShippingOptionsAndRatesFromExternalService> shippingOptions,
+   List<CartCalcShippingDefault.ShippingOptionsAndRatesFromExternalService> shippingOptions,
    CartExtension.CartDeliveryGroupMethodList cartDeliveryGroupMethodCollection,
    String shippingProduct,
    CartExtension.CartValidationOutputList cartValidationOutputCollection

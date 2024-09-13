@@ -48,6 +48,7 @@ global class CartOrchestrator extends CartExtension.CartCalculate {
             }
         }
 
+        /*
         if (runPromotions) {
             promotions(calculatorRequest);
 
@@ -83,6 +84,7 @@ global class CartOrchestrator extends CartExtension.CartCalculate {
         if (runTaxes) {
             taxes(calculatorRequest);
         }
+        */
     }
 
     // This function evaluates whether there are errors in the CVO of a specific calculator type.

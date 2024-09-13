@@ -1,7 +1,14 @@
+/**
+ * @description       : 
+ * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+ * @group             : 
+ * @last modified on  : 09-12-2024
+ * @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+**/
 // This sample is for the situations where Digital Shipping is required, meaning there is no shipping cost. 
 
 // This class must extend the CartExtension.ShippingCartCalculator class to be processed.
-public class CartCalcDigitalShipping extends CartExtension.ShippingCartCalculator {
+public class CartCalcShippingDigital extends CartExtension.ShippingCartCalculator {
   
     public virtual override void calculate(CartExtension.CartCalculateCalculatorRequest request) {
       CartExtension.Cart cart = request.getCart();
