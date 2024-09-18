@@ -13,10 +13,7 @@ global class CartOrchestrator extends CartExtension.CartCalculate {
     /**
      * @description All classes extending CartExtension.CartCalculate must have a default constructor defined
      */
-    global CartOrchestrator()
-    {
-        System.debug('CartOrchestrator ctor');
-    }
+    global CartOrchestrator() {}
 
     /**
      * @description Constructor used by unit tests only. See <<CartCalculateSampleUnitTest>>.
@@ -28,36 +25,20 @@ global class CartOrchestrator extends CartExtension.CartCalculate {
     }
 
     // Each orchestrator must override this calculate method.
-    global virtual override void calculate(CartExtension.CartCalculateOrchestratorRequest request)
-    {
-        System.debug('### runPricing in CartOrchestrator');
-
+    global virtual override void calculate(CartExtension.CartCalculateOrchestratorRequest request) {
         CartExtension.Cart cart = request.getCart();
 
         // Use BuyerActions to decide which calculators to invoke
         CartExtension.BuyerActions buyerActions = request.getBuyerActions();
         boolean runPricing = buyerActions.isCheckoutStarted() || buyerActions.isCartItemChanged();
-        boolean runPromotions = buyerActions.isCheckoutStarted() || buyerActions.isCouponChanged() || buyerActions.isCartItemChanged();
-        boolean runInventory = buyerActions.isCheckoutStarted();
         boolean runShipping = buyerActions.isDeliveryGroupChanged();
         boolean runPostShipping = buyerActions.isDeliveryGroupChanged() || buyerActions.isDeliveryMethodSelected();
-        boolean runTaxes = buyerActions.isDeliveryGroupChanged() || buyerActions.isDeliveryMethodSelected();
-
-
-        String calculateStatus = '### Calculate Boolean Status:\r\n';
-        calculateStatus += 'runPricing: ' + runPricing + '\r\n';
-        calculateStatus += 'runPromotions: ' + runPromotions + '\r\n';
-        calculateStatus += 'runInventory: ' + runInventory + '\r\n';
-        calculateStatus += 'runShipping: ' + runShipping + '\r\n';
-        calculateStatus += 'runPostShipping: ' + runPostShipping + '\r\n';
-        calculateStatus += 'runTaxes: ' + runTaxes + '\r\n';
-        System.debug(calculateStatus);
 
         // OptionalBuyerActionDetails can be used to optimize the various calculators that are invoked
         CartExtension.CartCalculateCalculatorRequest calculatorRequest = new CartExtension.CartCalculateCalculatorRequest(cart, request.getOptionalBuyerActionDetails());
 
         if (runPricing) {
-            System.debug('### runPricing in CartOrchestrator');
+            System.debug('### runPricing');
             prices(calculatorRequest);
 
             if (hasErrorLevelCartValidationOutput(cart.getCartValidationOutputs(), CartExtension.CartValidationOutputTypeEnum.PRICING)) {
@@ -65,26 +46,8 @@ global class CartOrchestrator extends CartExtension.CartCalculate {
             }
         }
 
-        if (runPromotions) {
-            System.debug('### runPromotions in CartOrchestrator');
-            promotions(calculatorRequest);
-
-            if (hasErrorLevelCartValidationOutput(cart.getCartValidationOutputs(), CartExtension.CartValidationOutputTypeEnum.PROMOTIONS)) {
-                return;
-            }
-        }
-
-        if (runInventory) {
-            System.debug('### runInventory in CartOrchestrator');
-            inventory(calculatorRequest);
-
-            if (hasErrorLevelCartValidationOutput(cart.getCartValidationOutputs(), CartExtension.CartValidationOutputTypeEnum.INVENTORY)) {
-                return;
-            }
-        }
-
         if (runShipping) {
-            System.debug('### runShipping in CartOrchestrator');
+            System.debug('### runShipping');
             shipping(calculatorRequest);
 
             if (hasErrorLevelCartValidationOutput(cart.getCartValidationOutputs(), CartExtension.CartValidationOutputTypeEnum.SHIPPING)) {
@@ -93,25 +56,18 @@ global class CartOrchestrator extends CartExtension.CartCalculate {
         }
 
         if (runPostShipping) {
-            System.debug('### runPostShipping in CartOrchestrator');
+            System.debug('### runPostShipping');
             postShipping(calculatorRequest);
 
             if (hasErrorLevelCartValidationOutput(cart.getCartValidationOutputs(), CartExtension.CartValidationOutputTypeEnum.SYSTEM_ERROR)) {
                 return;
             }
         }
-
-        if (runTaxes) {
-            System.debug('### runTaxes in CartOrchestrator');
-            taxes(calculatorRequest);
-        }
     }
 
     // This function evaluates whether there are errors in the CVO of a specific calculator type.
     private Boolean hasErrorLevelCartValidationOutput(CartExtension.CartValidationOutputList cartValidationOutputs,
-        CartExtension.CartValidationOutputTypeEnum cartValidationOutputType)
-    {
-        System.debug('### hasErrorLevelCartValidationOutput in CartOrchestrator started');
+                                                      CartExtension.CartValidationOutputTypeEnum cartValidationOutputType) {
         Iterator<CartExtension.CartValidationOutput> iterator = cartValidationOutputs.iterator();
 
         while (iterator.hasNext()) {
@@ -120,14 +76,11 @@ global class CartOrchestrator extends CartExtension.CartCalculate {
             Boolean cvoContainsCalculatorError = cvo.getType() == cartValidationOutputType
                     && cvo.getLevel() == CartExtension.CartValidationOutputLevelEnum.ERROR;
 
-            if (cvoContainsCalculatorError)
-            {
-                System.debug('### hasErrorLevelCartValidationOutput in CartOrchestrator complete. Result: true.');
+            if (cvoContainsCalculatorError) {
                 return true;
             }
         }
 
-        System.debug('### hasErrorLevelCartValidationOutput in CartOrchestrator complete. Result: false.');
         return false;
     }
 }
