@@ -1,7 +1,7 @@
 /**
- * @description       : Example Cart Calculator for Taxation aspects. This class is part of the "Get to Know B2B Commerce for Administrators"
- *                      curriculum in the Salesforce Partner Learning Camp (PLC). This class is loosely based on the example provided at this URL:
- *                      https://github.com/forcedotcom/commerce-extensibility/blob/releases/248/commerce/domain/tax/cart/calculator/classes/TaxCartCalculatorSample.cls
+ * @description       : Example Cart Calculator for Pricing aspects. This class is part of the "Get to Know B2B Commerce for Administrators"
+ *                      curriculum in the Salesforce Partner Learning Camp (PLC) and loosely based on the example provided at this URL:
+ *                      https://github.com/forcedotcom/commerce-extensibility/blob/releases/248/commerce/domain/pricing/cart/PricingBasicCalculator/PricingCalculatorSample.cls
  *
  *                      Original Comments in the referenced code:
  *                      -----------------------------------------
@@ -13,18 +13,18 @@
  *
  *                      Notable modifications made to original example code to better suit this course and improve understanding:
  *                      ---------------------------------------------------------------------------------------------------------
- *                      1. Screaming constants (static final variables)
+ *                      1. Screaming constants (static final variables) for legibility / consistency
  *                      2. Many additional System.debug entries
- *                      3. Reformatting for legibility
- *                      4. Superfluous constructor removed in favor of constant
- *                      5. Added PRICE_NOT_FOUND_DEFAULT_VALUE for fallback
+ *                      3. Reformatting and alignment for legibility
+ *                      4. Superfluous constructor removed in favor of a constant USE_EXTERNAL_SERVICE
+ *                      5. Added PRICE_NOT_FOUND_DEFAULT_VALUE for fallback when price isn't found
  *                      6. Added BUBBLE_EXCEPTIONS for configurability
- *                      7. Added LOG_CART_DETAIL_ACTIVE and LOG_CART_ITEM_DETAIL_ACTIVE with methods for diagnostic data
- *                      8. Introduced the Capricorn sample product price map for local call
- *                      9. Added a productCode property to PricingDataFromExternalService structure so we can perform a lookup
- *                      10. Added a REST call for WebStore pricing data to drive the point home
+ *                      7. Added LOG_CART_DETAIL_ACTIVE and LOG_CART_ITEM_DETAIL_ACTIVE with methods for additional diagnostics
+ *                      8. Introduced the Capricorn sample product price map for local calls (when USE_EXTERNAL_SERVICE is false)
+ *                      9. WIP - Added a productCode property to PricingDataStructure structure so we can perform a lookup
+ *                      10. WIP - Added a REST call for WebStore pricing data to drive the point home
  *                      11. Added more comments
- *                      12. Refactored to remove some complexity
+ *                      12. Some refactoring to remove complexity
  *
  * @author            : Tom Zarr
  * @group             : Salesforce Commerce Partner Delivery Success (2024)
@@ -52,7 +52,7 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
     private static final Boolean LOG_CART_ITEM_DETAIL_ACTIVE = true;
 
     // Supports the Capricorn Sample Product Pricing - for demonstration purposes only
-    private Map<String, PricingDataFromExternalService> capricornSamplesStaticPricing;
+    private Map<String, PricingDataStructure> capricornSamplesStaticPricing;
 
     /**
     * @description All classes extending CartExtension.AbstractCartCalculator must have a default constructor defined
@@ -60,18 +60,18 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
     public CartCalcPricingDefault()
     {
         super();
-        capricornSamplesStaticPricing = new Map<String, PricingDataFromExternalService>();
+        capricornSamplesStaticPricing = new Map<String, PricingDataStructure>();
         // Note on the ctor's parameter format: (productCode, unitPrice, listPrice, totalAdjustmentAmount, totalListPrice, totalPrice)
-        capricornSamplesStaticPricing.put('PS-EL', new PricingDataFromExternalService('PS-EL', 549.99, 599.99, 549.99, 549.99, 549.99));
-        capricornSamplesStaticPricing.put('TR-COFMAC-001', new PricingDataFromExternalService('TR-COFMAC-001', 449.99, 499.99, 449.99, 449.99, 449.99));
-        capricornSamplesStaticPricing.put('ID-PEM', new PricingDataFromExternalService('ID-PEM', 249.99, 259.99, 249.99, 249.99, 249.99));
-        capricornSamplesStaticPricing.put('B-C-COFMAC-001', new PricingDataFromExternalService('B-C-COFMAC-001', 484.99, 549.99, 484.99, 484.99, 484.99));
-        capricornSamplesStaticPricing.put('CR-DEC', new PricingDataFromExternalService('CR-DEC', 15.99, 22.49, 15.99, 15.99, 15.99));
-        capricornSamplesStaticPricing.put('ESP-IOT-1', new PricingDataFromExternalService('ESP-IOT-1', 649.99, 679.99, 649.99, 649.99, 649.99));
-        capricornSamplesStaticPricing.put('MRC-1', new PricingDataFromExternalService('MRC-1', 17.99, 24.99, 17.99, 17.99, 17.99));
-        capricornSamplesStaticPricing.put('PS-INF', new PricingDataFromExternalService('PS-INF', 429.99, 484.99, 429.99, 429.99, 429.99));
-        // TODO: Uncomment this like to get Pricing in the cart for the 'DRW-1' item (Dark Roast Whole Bean)
-        // capricornSamplesStaticPricing.put('DRW-1', new PricingDataFromExternalService('DRW-1', 14.99, 19.99, 14.99, 14.99, 14.99));
+        capricornSamplesStaticPricing.put('PS-EL', new PricingDataStructure('PS-EL', 549.99, 599.99, 549.99, 549.99, 549.99));
+        capricornSamplesStaticPricing.put('TR-COFMAC-001', new PricingDataStructure('TR-COFMAC-001', 449.99, 499.99, 449.99, 449.99, 449.99));
+        capricornSamplesStaticPricing.put('ID-PEM', new PricingDataStructure('ID-PEM', 249.99, 259.99, 249.99, 249.99, 249.99));
+        capricornSamplesStaticPricing.put('B-C-COFMAC-001', new PricingDataStructure('B-C-COFMAC-001', 484.99, 549.99, 484.99, 484.99, 484.99));
+        capricornSamplesStaticPricing.put('CR-DEC', new PricingDataStructure('CR-DEC', 15.99, 22.49, 15.99, 15.99, 15.99));
+        capricornSamplesStaticPricing.put('ESP-IOT-1', new PricingDataStructure('ESP-IOT-1', 649.99, 679.99, 649.99, 649.99, 649.99));
+        capricornSamplesStaticPricing.put('MRC-1', new PricingDataStructure('MRC-1', 17.99, 24.99, 17.99, 17.99, 17.99));
+        capricornSamplesStaticPricing.put('PS-INF', new PricingDataStructure('PS-INF', 429.99, 484.99, 429.99, 429.99, 429.99));
+        // TODO: Uncomment this line to get Pricing in the cart for the 'DRW-1' item (Dark Roast Whole Bean)
+        // capricornSamplesStaticPricing.put('DRW-1', new PricingDataStructure('DRW-1', 14.99, 19.99, 14.99, 14.99, 14.99));
     }
 
     /*
@@ -158,7 +158,7 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
                 }
             }
 
-            Map<String, PricingDataFromExternalService> pricingDataMap = retrievePriceData(skus);
+            Map<String, PricingDataStructure> pricingDataMap = retrievePriceData(skus);
 
             if(pricingDataMap == null)
             {
@@ -294,10 +294,10 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
      * Stock Keeping Units which are more a function of inventory, usually where the item is located, not necessarily the item's
      * definition in the domain.
      */
-    private Map<String, PricingDataFromExternalService> retrievePriceData(Set<String> skus)
+    private Map<String, PricingDataStructure> retrievePriceData(Set<String> skus)
     {
         System.debug('### retrievePriceData in CartCalcPricingDefault started...');
-        Map<String, PricingDataFromExternalService> pricingDataReturned = (USE_EXTERNAL_SERVICE)
+        Map<String, PricingDataStructure> pricingDataReturned = (USE_EXTERNAL_SERVICE)
             ? getPricingFromExternalService(skus)
             : getPricingFromStaticResponse(skus);
         System.debug('### retrievePriceData in CartCalcPricingDefault complete.');
@@ -307,7 +307,7 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
     /**
     * Handles pricing data response by external or static response and sets it to cart items.
     */
-    private void applyPricesToCartItems(CartExtension.Cart cart, Iterator<CartExtension.CartItem> cartItemsIterator, Map<String, PricingDataFromExternalService> lineItemIdToPricingDetailsMap)
+    private void applyPricesToCartItems(CartExtension.Cart cart, Iterator<CartExtension.CartItem> cartItemsIterator, Map<String, PricingDataStructure> lineItemIdToPricingDetailsMap)
     {
         System.debug('applyPricesToCartItems in CartCalcPricingDefault started...');
 
@@ -335,7 +335,7 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
     /**
     * Sets pricing data returned by external service to Salesforce's CartItem
     */
-    private void setPricingFieldsOnCart(CartExtension.CartItem item, PricingDataFromExternalService pricingLineItem)
+    private void setPricingFieldsOnCart(CartExtension.CartItem item, PricingDataStructure pricingLineItem)
     {
 
         System.debug('setPricingFieldsOnCart in CartCalcPricingDefault started...');
@@ -357,10 +357,9 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
     * Service.
     *
     * @param skus A set of SKUs to get pricing data
-    *
     * @return Map containing PricingData for each SKU passed into this method
     */
-    private Map<String, PricingDataFromExternalService> getPricingFromExternalService(Set<String> skus)
+    private Map<String, PricingDataStructure> getPricingFromExternalService(Set<String> skus)
     {
         System.debug('### getPricingFromExternalService in CartCalcPricingDefault started...');
 
@@ -386,38 +385,30 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
         }
 
         System.debug('### getPricingFromExternalService in CartCalcPricingDefault complete.');
-        return (Map<String, PricingDataFromExternalService>) JSON.deserialize(r.getBody(), Map<String, PricingDataFromExternalService>.class);
+        return (Map<String, PricingDataStructure>) JSON.deserialize(r.getBody(), Map<String, PricingDataStructure>.class);
     }
 
     /**
     * Returns a static pricing data map for all products.
     */
-    private Map<String, PricingDataFromExternalService> getPricingFromStaticResponse(Set<String> skus)
+    private Map<String, PricingDataStructure> getPricingFromStaticResponse(Set<String> skus)
     {
         System.debug('### getPricingFromStaticResponse in CartCalcPricingDefault started...');
-        Map<String, PricingDataFromExternalService> dataFromExternalService = new Map<String, PricingDataFromExternalService>();
+        Map<String, PricingDataStructure> dataFromExternalService = new Map<String, PricingDataStructure>();
 
         for(String sku: skus)
         {
-            //PricingDataFromExternalService pricingData = new PricingDataFromExternalService(10, 10, 9, 20, 20);
-            PricingDataFromExternalService pricingData = null;
+            //PricingDataStructure pricingData = new PricingDataStructure(10, 10, 9, 20, 20);
+            PricingDataStructure pricingData = null;
+            pricingData = capricornSamplesStaticPricing.get(sku);
 
-            //try
-            //{
-                pricingData = capricornSamplesStaticPricing.get(sku);
-
-                if(pricingData == null)
-                {
-                    System.debug('### PRICING DATA NOT FOUND!');
-                }
-
-            //}
-            //catch(HandledException handledException)
-            //{
-            //    System.debug('### HandledException caught in getPricingFromStaticResponse. The sku value was: ' + sku + '". Error: "' + handledException + '"');
-            //    pricingData = new PricingDataFromExternalService('FALLBACK', PRICE_NOT_FOUND_DEFAULT_VALUE,
-            //        PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE);
-            //}
+            // This code is for demonstrative purposes
+            if(pricingData == null)
+            {
+                System.debug('### Pricing data not found in getPricingFromStaticResponse with sku value: ' + sku + '". Resorting to default value: "' + PRICE_NOT_FOUND_DEFAULT_VALUE + '"');
+                pricingData = new PricingDataStructure(sku, PRICE_NOT_FOUND_DEFAULT_VALUE,
+                    PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE);
+            }
 
             dataFromExternalService.put(sku, pricingData);
         }
@@ -427,10 +418,10 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
     }
 
     /**
-    * Structure to store pricing data retrieved from external service. This class simplifies our
+    * Structure to store pricing data retrieved from an external service or static example. This class simplifies our
     * ability to access the data when storing it in Salesforce's CartItem.
     */
-    class PricingDataFromExternalService
+    class PricingDataStructure
     {
         private String productCode;
         private Decimal unitPrice;
@@ -439,7 +430,7 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
         private Decimal totalListPrice;
         private Decimal totalPrice;
 
-        public PricingDataFromExternalService()
+        public PricingDataStructure()
         {
             productCode = '';
             unitPrice = CartCalcPricingDefault.ZERO_DECIMAL;
@@ -449,7 +440,7 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
             totalPrice = CartCalcPricingDefault.ZERO_DECIMAL;
         }
 
-        public PricingDataFromExternalService(String productCode, Decimal unitPrice, Decimal listPrice, Decimal totalAdjustmentAmount,
+        public PricingDataStructure(String productCode, Decimal unitPrice, Decimal listPrice, Decimal totalAdjustmentAmount,
             Decimal totalListPrice, Decimal totalPrice)
         {
             this.productCode = productCode;
