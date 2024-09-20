@@ -16,11 +16,11 @@
  *                      1. Screaming constants (static final variables) for legibility / consistency
  *                      2. Many additional System.debug entries
  *                      3. Reformatting and alignment for legibility
- *                      4. Superfluous constructor removed in favor of a constant USE_EXTERNAL_SERVICE
+ *                      4. Superfluous constructor removed in favor of a constant DEMO_USE_EXTERNAL_SERVICE
  *                      5. Added PRICE_NOT_FOUND_DEFAULT_VALUE for fallback when price isn't found
  *                      6. Added BUBBLE_EXCEPTIONS for configurability
  *                      7. Added LOG_CART_DETAIL_ACTIVE and LOG_CART_ITEM_DETAIL_ACTIVE with methods for additional diagnostics
- *                      8. Introduced the Capricorn sample product price map for local calls (when USE_EXTERNAL_SERVICE is false)
+ *                      8. Introduced the Capricorn sample product price map for local calls (when DEMO_USE_EXTERNAL_SERVICE is false)
  *                      9. WIP - Added a productCode property to PricingDataStructure structure so we can perform a lookup
  *                      10. WIP - Added a REST call for WebStore pricing data to drive the point home
  *                      11. Added more comments
@@ -28,19 +28,24 @@
  *
  * @author            : Tom Zarr
  * @group             : Salesforce Commerce Partner Delivery Success (2024)
- * @last modified on  : 09-18-2024
+ * @last modified on  : 09-19-2024
  * @last modified by  : Tom Zarr
 **/
 
 public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
 {
-    private static final Decimal ZERO_DECIMAL = 0.0;
+    // ======== Start Demonstration and Behavioral Settings ======== //
+
+    /*  For demostration purposes only: Set this to true to see a networked call take place against your org,
+    false to pull static data from the Capricorn sample products */
+    private static final Boolean DEMO_USE_EXTERNAL_SERVICE = false;
+
+    /*  For demostration purposes only: Set this to true to leave the last Capricorn sample out of the mapping
+    to demonstrate how a missing pricing is handled. */
+    private static final Boolean DEMO_MISSING_PRICE_ITEM = true;
 
     // Set this to true to rethrow the error in the catch block
     private static final Boolean BUBBLE_EXCEPTIONS = true;
-
-    // Set this to true to see a a networked call take place against your org - for demonstration purposes only
-    private static final Boolean USE_EXTERNAL_SERVICE = false;
 
     // Supports a default value for pricing when the pricing is not found - for demostration purposes only
     private static final Decimal PRICE_NOT_FOUND_DEFAULT_VALUE = 50.00;
@@ -50,6 +55,10 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
 
     // When true logs the details of the cart item(s)
     private static final Boolean LOG_CART_ITEM_DETAIL_ACTIVE = true;
+
+    // ======== End Behavioral and Demonstration Settings ======== //
+
+    private static final Decimal ZERO_DECIMAL = 0.0;
 
     // Supports the Capricorn Sample Product Pricing - for demonstration purposes only
     private Map<String, PricingDataStructure> capricornSamplesStaticPricing;
@@ -61,17 +70,21 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
     {
         super();
         capricornSamplesStaticPricing = new Map<String, PricingDataStructure>();
-        // Note on the ctor's parameter format: (productCode, unitPrice, listPrice, totalAdjustmentAmount, totalListPrice, totalPrice)
-        capricornSamplesStaticPricing.put('PS-EL', new PricingDataStructure('PS-EL', 549.99, 599.99, 549.99, 549.99, 549.99));
-        capricornSamplesStaticPricing.put('TR-COFMAC-001', new PricingDataStructure('TR-COFMAC-001', 449.99, 499.99, 449.99, 449.99, 449.99));
-        capricornSamplesStaticPricing.put('ID-PEM', new PricingDataStructure('ID-PEM', 249.99, 259.99, 249.99, 249.99, 249.99));
-        capricornSamplesStaticPricing.put('B-C-COFMAC-001', new PricingDataStructure('B-C-COFMAC-001', 484.99, 549.99, 484.99, 484.99, 484.99));
+        // Note on the PricingDataStructure ctor's parameters: (productCode, unitPrice, listPrice, totalAdjustmentAmount, totalListPrice, totalPrice)
+        capricornSamplesStaticPricing.put('PS-EL', new PricingDataStructure('PS-EL', 549.99, 599.99, 50.00, 549.99, 549.99));
+        capricornSamplesStaticPricing.put('TR-COFMAC-001', new PricingDataStructure('TR-COFMAC-001', 449.99, 499.99, 50.00, 449.99, 449.99));
+        capricornSamplesStaticPricing.put('ID-PEM', new PricingDataStructure('ID-PEM', 249.99, 259.99, 0.00, 249.99, 249.99));
+        capricornSamplesStaticPricing.put('B-C-COFMAC-001', new PricingDataStructure('B-C-COFMAC-001', 484.99, 549.99, 0.00, 484.99, 484.99));
         capricornSamplesStaticPricing.put('CR-DEC', new PricingDataStructure('CR-DEC', 15.99, 22.49, 15.99, 15.99, 15.99));
         capricornSamplesStaticPricing.put('ESP-IOT-1', new PricingDataStructure('ESP-IOT-1', 649.99, 679.99, 649.99, 649.99, 649.99));
         capricornSamplesStaticPricing.put('MRC-1', new PricingDataStructure('MRC-1', 17.99, 24.99, 17.99, 17.99, 17.99));
         capricornSamplesStaticPricing.put('PS-INF', new PricingDataStructure('PS-INF', 429.99, 484.99, 429.99, 429.99, 429.99));
-        // TODO: Uncomment this line to get Pricing in the cart for the 'DRW-1' item (Dark Roast Whole Bean)
-        // capricornSamplesStaticPricing.put('DRW-1', new PricingDataStructure('DRW-1', 14.99, 19.99, 14.99, 14.99, 14.99));
+
+        // The logic to leave a product out to demonstrate error handling or behaviors when prices are missing
+        if(!DEMO_MISSING_PRICE_ITEM)
+        {
+            capricornSamplesStaticPricing.put('DRW-1', new PricingDataStructure('DRW-1', 14.99, 19.99, 14.99, 14.99, 14.99));
+        }
     }
 
     /*
@@ -85,6 +98,7 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
             return;
         }
 
+        // Couldn't find documentation saying this is a performance hit like in Java or C# so I'm going with it for now
         String cartDetail = '### cart data in CartCalcPricingDefault started...\r\n';
         cartDetail += '     Name: "' + cart.getName() + '"\r\n';
         cartDetail += '     WebStoreId: "' + cart.getWebStoreId() + '"\r\n';
@@ -120,6 +134,7 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
             return;
         }
 
+        // Couldn't find documentation saying this is a performance hit like in Java or C# so I'm going with it for now
         String cartItemDetail = '### cartItem data in CartCalcPricingDefault started...\r\n';
         cartItemDetail += '     Name: "' + cartItem.getName() + '"\r\n';
         cartItemDetail += '     SalesItemType: "' + cartItem.getType().toString() + '"\r\n';
@@ -297,7 +312,7 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
     private Map<String, PricingDataStructure> retrievePriceData(Set<String> skus)
     {
         System.debug('### retrievePriceData in CartCalcPricingDefault started...');
-        Map<String, PricingDataStructure> pricingDataReturned = (USE_EXTERNAL_SERVICE)
+        Map<String, PricingDataStructure> pricingDataReturned = (DEMO_USE_EXTERNAL_SERVICE)
             ? getPricingFromExternalService(skus)
             : getPricingFromStaticResponse(skus);
         System.debug('### retrievePriceData in CartCalcPricingDefault complete.');
@@ -314,15 +329,17 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
         while (cartItemsIterator.hasNext())
         {
             CartExtension.CartItem cartItem = cartItemsIterator.next();
+            String sku = cartItem.getSku();
+            System.debug('### iterating on sku: "' + sku + '" for result: "' + lineItemIdToPricingDetailsMap.get(sku)  + '"');
 
-            if(lineItemIdToPricingDetailsMap.get(cartItem.getSku()) == null)
+            if(lineItemIdToPricingDetailsMap.get(sku) == null)
             {
                 // No price available for the SKU in the Cart. Populate error message for the Buyer.
                 CartExtension.CartValidationOutput cvo = new CartExtension.CartValidationOutput(CartExtension.CartValidationOutputTypeEnum.PRICING,
                     CartExtension.CartValidationOutputLevelEnum.ERROR, cartItem);
-                cvo.setMessage('### No price available for the SKU in the Cart.');
+                cvo.setMessage('No price available for the SKU in the Cart.');
                 cart.getCartValidationOutputs().add(cvo);
-                System.debug('### No price available for the SKU: ' + cartItem.getSku());
+                System.debug('### No price available for the SKU: ' + sku);
                 continue;
             }
 
@@ -352,8 +369,8 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
         System.debug('setPricingFieldsOnCart in CartCalcPricingDefault complete.');
     }
 
-    /**
-    * @description This doesn't actually make an HTTP call, but it mocks the JSON response of an external Pricing
+    /*
+    * This doesn't actually make an HTTP call, but it mocks the JSON response of an external Pricing
     * Service.
     *
     * @param skus A set of SKUs to get pricing data
@@ -389,8 +406,10 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
     }
 
     /**
-    * Returns a static pricing data map for all products.
-    */
+     * Returns a static pricing data map for all products. For this example we rely on the capricornSamplesStaticPricing
+     * with an option configured in the variable DEMO_MISSING_PRICE_ITEM to demonstrate missing price behavior during
+     * cart calculations.
+     */
     private Map<String, PricingDataStructure> getPricingFromStaticResponse(Set<String> skus)
     {
         System.debug('### getPricingFromStaticResponse in CartCalcPricingDefault started...');
@@ -399,28 +418,42 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
         for(String sku: skus)
         {
             //PricingDataStructure pricingData = new PricingDataStructure(10, 10, 9, 20, 20);
-            PricingDataStructure pricingData = null;
-            pricingData = capricornSamplesStaticPricing.get(sku);
+            PricingDataStructure pricingData = capricornSamplesStaticPricing.get(sku);
 
-            // This code is for demonstrative purposes
+            /*  When there's no pricing data we can try to use a fallback price or let an error shown later */
             if(pricingData == null)
             {
-                System.debug('### Pricing data not found in getPricingFromStaticResponse with sku value: ' + sku + '". Resorting to default value: "' + PRICE_NOT_FOUND_DEFAULT_VALUE + '"');
-                pricingData = new PricingDataStructure(sku, PRICE_NOT_FOUND_DEFAULT_VALUE,
-                    PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE);
+                /*  This code is for demonstrative purposes of a fallback price- not real world code. A better way to
+                handle this situation would be to get the price from another source so it's a semi-accurate estimate
+                and not an arbitrary value. This also indicates a potential problem with the implementation as you
+                can't sell things that aren't priced. */
+                if(DEMO_MISSING_PRICE_ITEM)
+                {
+                    System.debug('### Pricing data not found in getPricingFromStaticResponse with sku value: ' + sku + '". Resorting to default value: "' + PRICE_NOT_FOUND_DEFAULT_VALUE + '"');
+                    pricingData = new PricingDataStructure(sku, PRICE_NOT_FOUND_DEFAULT_VALUE,
+                        PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE);
+                }
+                else
+                {
+                    /*  Push null on to the map - it's dealt with later in the display if a product with missing
+                    pricing lives in the cart. Look in the applyPricesToCartItems method and you'll see something
+                    like this: cvo.setMessage('No price available for the SKU in the Cart.'); */
+                    dataFromExternalService.put(sku, pricingData);
+                }
             }
-
-            dataFromExternalService.put(sku, pricingData);
+            else
+            {
+                // We did get pricing for the SKU so put it in the map
+                dataFromExternalService.put(sku, pricingData);
+            }
         }
 
         System.debug('### getPricingFromStaticResponse in CartCalcPricingDefault complete.');
         return dataFromExternalService;
     }
 
-    /**
-    * Structure to store pricing data retrieved from an external service or static example. This class simplifies our
-    * ability to access the data when storing it in Salesforce's CartItem.
-    */
+    /*  Structure to store pricing data retrieved from an external service or static example. This
+     *  class simplifies our ability to access the data when storing it in Salesforce's CartItem. */
     class PricingDataStructure
     {
         private String productCode;

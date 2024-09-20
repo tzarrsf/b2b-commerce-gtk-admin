@@ -14,102 +14,118 @@
  *
  *                      Notable modifications made to original example code to better suit this course and improve understanding:
  *                      ---------------------------------------------------------------------------------------------------------
- *                      1. Screaming constants (static final variables) for legibility / consistency
- *                      2. Many additional System.debug entries
+ *                      1. Screaming constants (static final variables) for legibility / consistency / removing magic numbers
+ *                      2. Many. many additional System.debug entries for tracing purposes
  *                      3. Reformatting and alignment for legibility
- *                      4. Superfluous constructor removed in favor of a constant USE_EXTERNAL_SERVICE
+ *                      4. Superfluous constructor removed in favor of a constant DEMO_USE_EXTERNAL_SERVICE
  *                      5. Added PRICE_NOT_FOUND_DEFAULT_VALUE for fallback when price isn't found
- *                      6. Added BUBBLE_EXCEPTIONS for configurability
- *                      7. Added LOG_CART_DETAIL_ACTIVE and LOG_CART_ITEM_DETAIL_ACTIVE with methods for additional diagnostics
- *                      8. Introduced the Capricorn sample product price map for local calls (when USE_EXTERNAL_SERVICE is false)
- *                      9. WIP - Added a productCode property to PricingDataStructure structure so we can perform a lookup
- *                      10. WIP - Added a REST call for WebStore pricing data to drive the point home
- *                      11. Added more comments
- *                      12. Some refactoring to remove complexity
- * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+ *                      6. Introduced the Capricorn sample product price map for local calls (when DEMO_USE_EXTERNAL_SERVICE is false)
+ *                      7. Added clear "DEMO_" Booleans and supporting constants examples like pricing and currency overrides can be isolated
+ *                      8. WIP - Added a REST call for WebStore pricing data to drive the point home along with ORG_BASE_URI and
+ *                      API_VERSION to support flexibility and reuse.
+ *                      9. Added many more comments
+ *                      10. Refactoring to remove complexity
+ * @author            : Tom Zarr
  * @group             : Salesforce Commerce Partner Delivery Success (2024)
- * @last modified on  : 09-18-2024
+ * @last modified on  : 09-20-2024
  * @last modified by  : Tom Zarr
 **/
 
-/*
-This must implement the commercestorepricing.ServicePricingDefault class in order to be processed by the pricing flow.
-*/
+/**
+ *  This must implement the commercestorepricing.ServicePricingDefault class in order to be processed by the
+ *  pricing flow. Services like this are mostly for estimated or custom pricing on the product list and detail
+ *  pages. For custom cart calculations see the example class CartCalcPricingDefault.
+ */
 public class ServicePricingDefault extends commercestorepricing.PricingService
 {
-    // The name of the WebStore as it appears in the Commerce app UI - used to resolve the Webstore Id
-    private static final string WEBSTORE_NAME = 'Alpine B2B LWR Store';
+    // ======== Start Demonstration and Behavioral Settings ======== //
 
-    // Removes the magic strings
-    private static final Decimal ZERO_DECIMAL = 0.0;
+    /*  For demonstration purposes only: Set this to true to see a networked call take place against your org,
+    false to pull static data from the Capricorn sample products */
+    private static final Boolean DEMO_USE_EXTERNAL_SERVICE = true;
 
-    // Query parameters used with the Connect API for pricing in the constructor
+    /*  For demonstration purposes only: Set this to true to leave the last Capricorn sample out of the mapping
+    to demonstrate how a missing pricing is handled. */
+    private static final Boolean DEMO_MISSING_PRICE_ITEM = true;
+
+    /*  For demonstration purposes only: Supports a default value for pricing when the pricing is not found */
+    private static final Decimal PRICE_NOT_FOUND_DEFAULT_VALUE = 50.00;
+
+    /*  For demonstration purposes only: Set this to true to demonstrate the branch of code which will override
+    unit price and list price by a fixed amount */
+    private static final Boolean DEMO_OVERRIDE_UNIT_PRICE_AND_LIST_PRICE_BY_FIXED_AMOUNT = false;
+
+    /*  For demonstration purposes only: Set this to the value you'd like to use for a fixed amount in price
+    overrides. This variable does nothing until DEMO_OVERRIDE_UNIT_PRICE_AND_LIST_PRICE_BY_FIXED_AMOUNT is set to true */
+    private static final Decimal DEMO_OVERRIDE_UNIT_PRICE_AND_LIST_PRICE_FIXED_AMOUNT = 10.00;
+
+    /*  For demonstration purposes only: Set this to true to demonstrate the branch of code which will override
+    currency based on a mapping */
+    private static final Boolean DEMO_OVERRIDE_CURRENCY_USING_CUSTOM_MAPPING = false;
+
+    /*  For demonstration purposes only: The first currency value (i.e. the key in the map) will be overriden with the
+    second value (i.e. the map entry's value) when DEMO_OVERRIDE_CURRENCY_USING_CUSTOM_MAPPING is set to true. */
+    private static final Map<String, String> DEMO_OVERRIDE_CURRENCY_MAP_IN_REQUEST = new Map<String, String> {'USD' => 'EUR'};
+
+    // ======== End Behavioral and Demonstration Settings ======== //
+
+    // ======== Start API Settings ======== //
+
+    /*  The version of the API to use for local REST oAPI calls in the format: "v##" - mostly for demonstration purposes */
+    public static final String API_VERSION = 'v61.0';
+    /*  The Base URI for on-platform REST calls - used for fill-in REST API calls in implementation and demostrating a
+    working remote call even if that means pointing back to the org to get pricing data */
+    public static final String ORG_BASE_URI = URL.getOrgDomainUrl().toExternalForm();
+    /*  The "API Home" or calculated URL for REST calls of various flavors. This is meant to have a suffix appended to it.
+        Here are a few examples:
+            /query/?q=SELECT+Id,+Name+FROM+WebStore+WHERE+Name+=+'{{webStoreName}}'
+            /commerce/oci/availability/availability-records/actions/get-availability
+    */
+    public static final String API_HOST = ORG_BASE_URI + '/services/data/' + API_VERSION + '/';
+    /* HTTP POST Method */
+    public static final String METHOD_POST = 'POST';
+    /* HTTP GET Method */
+    public static final String METHOD_GET = 'GET';
+    /* Header key to set the Content Type for REST + JSON */
+    public static final String CONTENT_TYPE_HEADER_KEY = 'Content-Type';
+    /* Header value to set the Content Type for REST + JSON */
+    public static final String CONTENT_TYPE_HEADER_VALUE = 'application/json;  charset=utf-8';
+    /* Lowest possible value for a valid REST call */
+    public static final Integer HTTP_STATUS_OK_LOW = 200;
+    /* Highest possible value for a valid REST call  */
+    public static final Integer HTTP_STATUS_OK_HIGH = 204;
+
+    // ======== End API Settings ======== //
+
+    // ======== Start Product Overview Query Settings (for Connect API) ======== //
+
+    // Query parameters used with the Connect API for product details in the constructor
     private static final Id[] PRODUCT_OVERVIEW_QUERY_PRODUCT_ID_LIST = new Id[]{};
     private static final String[] PRODUCT_OVERVIEW_QUERY_FIELDS = new String[] {'Id','ProductCode','StockKeepingUnit'};
     private static final Boolean PRODUCT_OVERVIEW_QUERY_EXCLUDE_MEDIA = true;
 
-    // Set this to true to see a a networked call take place against your org - for demonstration purposes only
-    private static final Boolean USE_EXTERNAL_SERVICE = false;
+    // ======== End Product Overview Query Settings (for Connect API) ======== //
 
-    // Supports a default value for pricing when the pricing is not found - for demostration purposes only
-    private static final Decimal PRICE_NOT_FOUND_DEFAULT_VALUE = 50.00;
-
-    // Set this to true to leave the last Capricorn sample out of the mapping to demonstrate how a missing pricing is handled
-    private static Boolean DEMO_MISSING_PRICE_ITEM = true;
-
-    // Set this to true to demonstrate the branch of code which will override unit price and list price by a fixed amount
-    private static final Boolean DEMO_OVERRIDE_UNIT_PRICE_AND_LIST_PRICE_BY_FIXED_AMOUNT = false;
-
-    /*
-    Set this to the value you'd like to use for a fixed amount in price overrides. Take note that this variable
-    does nothing until DEMO_OVERRIDE_UNIT_PRICE_AND_LIST_PRICE_BY_FIXED_AMOUNT is set to true
-    */
-    private static final Decimal DEMO_OVERRIDE_UNIT_PRICE_AND_LIST_PRICE_FIXED_AMOUNT = 10.00;
-
-    // Set this to true to demonstrate the branch of code which will override currency based on a mapping
-    private static final Boolean DEMO_OVERRIDE_CURRENCY_USING_CUSTOM_MAPPING = false;
-
-    /*
-    The first currency value (the key) will be overriden with the second value on each line (the value) when
-    currency is overridden (DEMO_OVERRIDE_CURRENCY_USING_CUSTOM_MAPPING is set to true). When pricing is not
-    found you should get a semi-appropriate dialect response for that currency. Take note that this variable
-    does nothing until DEMO_OVERRIDE_CURRENCY_USING_CUSTOM_MAPPING is set to true and that the currency presented
-    will be switched a few times on subsequent requests eventually landing back on USD for United States dollar.
-    This is for educational purposes.
-    */
-    private static final Map<String, String> DEMO_OVERRIDE_CURRENCY_MAP_IN_REQUEST = new Map<String, String> {'USD' => 'EUR'};
-
-        // When true logs the details of the cart
-    //private static final Boolean LOG_CART_DETAIL_ACTIVE = true;
-
-    // When true logs the details of the cart item(s)
-    //private static final Boolean LOG_CART_ITEM_DETAIL_ACTIVE = true;
-
-    // Supports the Capricorn Sample Product Pricing by Product Code or SKU - for demonstration purposes only
+    /*  Avoid magic strings */
+    private static final Decimal ZERO_DECIMAL = 0.0;
+    /*  For demonstration purposes only: Supports the Capricorn Sample Product Pricing by Product Code or SKU */
     private Map<String, PricingDataStructure> capricornSamplesStaticPricing;
-
-    // Supports the Capricorn Sample Product Pricing by Product Id - for demonstration purposes only
+    /*  For demonstration purposes only: Supports the Capricorn Sample Product Pricing by mapping Product Code to Product Id */
     private Map<String, Id> capricornSamplesProductCodeToIdMap;
+    /* For demonstration purposes only: Supports the Capricorn Sample Product Pricing by mapping Product Id to Product Code */
     private Map<Id, String> capricornSamplesProductIdToCodeMap;
 
-    private WebStore webstore;
-    private Id webStoreId = '0ZEbn000002qasfGAA';
-    private Account effectiveAccount;
+    private WebCart webCart;
+    private Id webStoreId;
+    private Id effectiveAccountId;
     private User userEntity;
-
-    // TODO: Remove this?
-    // You MUST change this to be your service or you must launch your own Third Party Service
-    // and add the host in Setup | Security | Remote site settings.
-    private static String externalPricingServiceHost = 'https://example.com';
-
-    /* Base URI for on-platform REST calls - This is not something you'd normally do but it provides a working example without Heroku  */
-    private  static final String ORG_BASE_URI = URL.getOrgDomainUrl().toExternalForm();
 
     public ServicePricingDefault()
     {
         super();
 
-        // Set up static mapping for the Capricorn Sample products potentially leaving one out
+        /*  Set up static mapping for the Capricorn Sample products potentially leaving one out depending on
+        how DEMO_MISSING_PRICE_ITEM is set */
         capricornSamplesStaticPricing = new Map<String, PricingDataStructure>();
         capricornSamplesStaticPricing.put('PS-EL', new PricingDataStructure('PS-EL', 549.99, 599.99));
         capricornSamplesStaticPricing.put('TR-COFMAC-001', new PricingDataStructure('TR-COFMAC-001', 449.99, 499.99));
@@ -120,15 +136,17 @@ public class ServicePricingDefault extends commercestorepricing.PricingService
         capricornSamplesStaticPricing.put('MRC-1', new PricingDataStructure('MRC-1', 17.99, 24.99));
         capricornSamplesStaticPricing.put('PS-INF', new PricingDataStructure('PS-INF', 429.99, 484.99));
 
-        // Logic to leave a product out to demonstrate behavior when prices are missing
+        // The logic to leave a product out to demonstrate error handling or behaviors when prices are missing
         if(!DEMO_MISSING_PRICE_ITEM)
         {
             capricornSamplesStaticPricing.put('DRW-1', new PricingDataStructure('DRW-1', 14.99, 19.99));
         }
 
-        // Set up Effective Account based on user - This likely won't work with Account switching
+        /*  Get the UserEntity for the current user and set up Effective Account based on user. Note: This
+        likely won't work with Account switching and may not work qith guest access. */
         userEntity = [
             SELECT
+                Id,
                 AccountId
             FROM
                 User
@@ -138,35 +156,45 @@ public class ServicePricingDefault extends commercestorepricing.PricingService
                 SECURITY_ENFORCED
         ];
 
-        effectiveAccount = [
-            SELECT
-                Id, Name, OwnerId
-            FROM
-                Account
-            WHERE
-                Id = :userEntity.AccountId
-            WITH
-                SECURITY_ENFORCED
-        ];
+        effectiveAccountId = userEntity.AccountId;
 
-        // Get some product fields via Connect API so we can map by product Id to other fields like ProductCode or StockKeepingUnit (SKU)
-        //List<WebStoreNetwork> webStoreNetworks = [SELECT Id, WebStoreId, Name FROM WebStoreNetwork WHERE Name = :WEBSTORE_NAME];
-        //System.assertEquals(1, webStoreNetworks.size(), '### WebStore issue - Only 1 record should be returned. Hint: Check the WEBSTORE_NAME value.');
-        //webStoreId = webStoreNetworks[0].WebStoreId;
+        // Get the newest WebCart for the current user via the REST "Query" API and pull the WebStoreId from it
+        String webCartSoql = 'SELECT Id, WebStoreId, OwnerId, Name FROM WebCart WHERE OwnerId = \'' + userEntity.Id + '\' ORDER BY LastModifiedDate desc LIMIT 1';
+        String webCartSoqlEncoded = EncodingUtil.urlEncode(webCartSoql, 'UTF-8');
+        String webCartJson = this.handleLocalHttpGetRequest('query/?q=' + webCartSoqlEncoded);
+        Map<String, Object> jsonMap = (Map<String, Object>)JSON.deserializeUntyped(webCartJson);
+        // System.assert(jsonMap.get('totalSize') == 1, 'There should be only 1 record returned for Webstore');
+        // System.assert(jsonMap.get('done') == true, 'The fetch should be complete');
+        List<Object> records = (List<Object>)jsonMap.get('records');
 
-        // Make the query to the Connect API to get some additional fields for our statically mapped capricorn examples
-        // Signature: getProducts(String webStoreId, String effectiveAccountId, List<String> ids, List<String> skus, List<String> fields, Boolean excludeMedia)
+        /*  Not all the variables below are used but they were left in for educational purposes because working
+        with the JSON parser can be tricky and slow-going. We really just want to assign webStoreId and move on.
+        We already asserted that there's only 1 record above so the single iteration for loop is again for better
+        visualization of how to work with JSON results for those Administrators wanting to learn more Apex. */
+
+        for(Object record : records)
+        {
+            Map<String, Object> recordDetail = (Map<String, Object>)record;
+            Id id = (Id)recordDetail.get('Id');
+            webStoreId = (Id)recordDetail.get('WebStoreId');
+            Id ownerId = (Id)recordDetail.get('OwnerId');
+            String name = (String)recordDetail.get('Name');
+        }
+
+        // System.assert(String.isNotEmpty(webStoreId) && String.isNotBlank((String)webStoreId), 'webStoreId should not be null or blank');
+
+        /*  Make a query to the Connect API to get some additional fields for our statically mapped capricorn examples
+        since this class needs Product Ids and those are unique from org to org (shoudl be fetched dynamically) */
         ConnectApi.ProductOverviewCollection productOverview = ConnectApi.CommerceCatalog.getProducts(
-            //(String)webstore.Id,
             webStoreId,
-            (String)effectiveAccount.Id,
+            effectiveAccountId,
             PRODUCT_OVERVIEW_QUERY_PRODUCT_ID_LIST,
             new List<String>(capricornSamplesStaticPricing.keySet()),
             PRODUCT_OVERVIEW_QUERY_FIELDS,
             PRODUCT_OVERVIEW_QUERY_EXCLUDE_MEDIA
         );
 
-        // Create a map to easily translate the product Id to a product code
+        // TODO: Fix this as it's wonky! - Create a map to easily translate the product Id to a product code
         capricornSamplesProductCodeToIdMap = new Map<String, Id>();
         capricornSamplesProductIdToCodeMap = new Map<Id, String>();
 
@@ -176,6 +204,97 @@ public class ServicePricingDefault extends commercestorepricing.PricingService
             capricornSamplesProductCodeToIdMap.put(product.fields.get('ProductCode'), product.Id);
             capricornSamplesProductIdToCodeMap.put(product.Id, product.fields.get('ProductCode'));
         }
+    }
+
+    /** Helper method for handling generic HTTP GET requests and getting the raw response within the org.
+     *  I also have a Postman collection here if you'd like to learn more about the APIs:
+     *  https://github.com/tzarrsf/b2b-commerce-postman-setup-with-example-files*/
+    private String handleLocalHttpGetRequest(String endpoint)
+    {
+        System.debug('### handleLocalHttpGetRequest called with endpoint: \'' + endpoint + '\'');
+        String calloutUrl = API_HOST + endpoint;
+
+        System.debug('### handleLocalHttpGetRequest calling with calloutUrl: \'' + calloutUrl + '\'');
+        String response;
+        HttpRequest httpRequest = new HttpRequest();
+        httpRequest.setMethod(METHOD_GET);
+        httpRequest.setHeader(CONTENT_TYPE_HEADER_KEY, CONTENT_TYPE_HEADER_VALUE);
+        String sessionId = UserInfo.getSessionId();
+        // This is fine as we're not really leaving the org - ignore any IDE warnings about Named Credentials
+        httpRequest.setHeader('Authorization', 'Bearer ' + sessionId);
+        httpRequest.setEndpoint(calloutUrl);
+
+        try
+        {
+            Http http = new Http();
+            HttpResponse httpResponse = http.send(httpRequest);
+            Integer statusCode = httpResponse.getStatusCode();
+
+            if (statusCode >= HTTP_STATUS_OK_LOW && statusCode <= HTTP_STATUS_OK_HIGH)
+            {
+                    response = httpResponse.getBody();
+            }
+            else
+            {
+                    throw new CalloutException(httpResponse.getBody());
+            }
+        }
+        catch (Exception e)
+        {
+            System.debug('### handleLocalHttpGetRequest caught an exception with endpoint: "' + endpoint + '" and calloutUrl: "' + calloutUrl + '" User: "' + UserInfo.getUserName()  + '"');
+            String msg = e.getMessage();
+            System.debug(msg);
+            return msg;
+        }
+
+        System.debug(' ### handleLocalHttpGetRequest called with endpoint: "' + endpoint  + '" and calloutUrl: "' + calloutUrl + '" returning json:\r\n"' + response + '"\r\n');
+        return response;
+    }
+
+    /** Helper method for handling generic HTTP POST requests and getting the raw response within the org.
+     *  I also have a Postman collection here if you'd like to learn more about the APIs:
+     *  https://github.com/tzarrsf/b2b-commerce-postman-setup-with-example-files*/
+    private String handleLocalHttpPostRequest(String endpoint, String body)
+    {
+        System.debug('### handleLocalHttpPostRequest called with endpoint: \'' + endpoint + '\' and body: "' + body + '"...');
+        String calloutUrl = API_HOST + endpoint;
+
+        System.debug('### handleLocalHttpPostRequest attempting call with calloutUrl: \'' + calloutUrl + '\'');
+
+        String response;
+        HttpRequest httpRequest = new HttpRequest();
+        httpRequest.setMethod(METHOD_POST);
+        httpRequest.setHeader(CONTENT_TYPE_HEADER_KEY, CONTENT_TYPE_HEADER_VALUE);
+        // This is fine as we're not really leaving the org - ignore any IDE warnings about Named Credentials
+        httpRequest.setHeader('Authorization', 'Bearer ' + UserInfo.getSessionId());
+        httpRequest.setEndpoint(calloutUrl);
+        httpRequest.setBody(body);
+
+        try
+        {
+            Http http = new Http();
+            HttpResponse httpResponse = http.send(httpRequest);
+            Integer statusCode = httpResponse.getStatusCode();
+
+            if (statusCode >= HTTP_STATUS_OK_LOW && statusCode <= HTTP_STATUS_OK_HIGH)
+            {
+                response = httpResponse.getBody();
+            }
+            else
+            {
+                throw new CalloutException(httpResponse.getBody());
+            }
+        }
+        catch (Exception e)
+        {
+            System.debug('### handleLocalHttpPostRequest caught an exception with endpoint: "' + endpoint + '" and calloutUrl: "' + calloutUrl + '" User: "' + UserInfo.getUserName()  + '"');
+            String msg = e.getMessage();
+            System.debug(msg);
+            return msg;
+        }
+
+        System.debug(' ### handleLocalHttpPostRequest called with endpoint: "' + endpoint  + '" and calloutUrl: "' + calloutUrl + '" returning json:\r\n"' + response + '"\r\n');
+        return response;
     }
 
     /**
@@ -199,30 +318,12 @@ public class ServicePricingDefault extends commercestorepricing.PricingService
             products.add(item.getProductId());
         }
 
-        // Get prices from an external service
-
-        // OLD CODE:
-
-        Map<String, PricingDataStructure> pricingDataReturned;
-
-        if(USE_EXTERNAL_SERVICE)
-        {
-            pricingDataReturned = getPricesFromExternalService(products);
-        }
-        else
-        {
-            //pricingDataReturned = getPriceFromStaticResponse(products);
-            pricingDataReturned = getPricingFromStaticResponse(products);
-        }
-
-        // NEW CODE:
-        /*
-        Map<String, PricingDataStructure> pricingDataReturned = (USE_EXTERNAL_SERVICE)
+        // Get prices from an external service or static mapping based on DEMO_USE_EXTERNAL_SERVICE
+        Map<String, PricingDataStructure> pricingDataReturned = (DEMO_USE_EXTERNAL_SERVICE)
             ? getPricingFromExternalService(products) // OLD METHOD for reference: getPricesFromExternalService(skus)
-            : getPricingFromStaticResponse(products); // OLD METHOD for reference: getPriceFromStaticResponse(skus)
-        */
+            : getPricingFromStaticResponse(products);
 
-        // Create response using either the static data or the service response data in the current user's default currency
+        // Create a pricing response the current user's default currency
         commercestorepricing.PricingResponse response = new commercestorepricing.PricingResponse(UserInfo.getDefaultCurrency());
 
         for (Integer i = 0; i < items.size(); i++)
@@ -402,37 +503,6 @@ public class ServicePricingDefault extends commercestorepricing.PricingService
         return pricingDataResult;
     }
 
-    /** This is akin to the method of the same name in the CartCalcPricingDefault class but is using JSON formatting */
-    /*
-    private Map<String, PricingDataStructure> getPriceFromStaticResponse(Set<String> productIds)
-    {
-        String responseJson = '{';
-
-        for(String productID : productIds)
-        {
-            Double price = 10.00;
-            Double listPrice = 10.00;
-            Double unitPrice = 10.00;
-            responseJson = responseJson + '"'+productID+'"';
-            responseJson = responseJson + ':';
-            responseJson = responseJson + '{';
-            responseJson = responseJson + '"listPrice"';
-            responseJson = responseJson + ':';
-            responseJson = responseJson + price;
-            responseJson = responseJson + ',';
-            responseJson = responseJson + '"unitPrice"';
-            responseJson = responseJson + ':';
-            responseJson = responseJson + price;
-            responseJson = responseJson + '}';
-            responseJson = responseJson + ',';
-        }
-
-        responseJson = responseJson.removeEnd(',') + '}';
-        Map<String, Object> resultsFromExternalServiceBySKU =  (Map<String, Object>) JSON.deserializeUntyped(responseJson);
-        return populatePrice(resultsFromExternalServiceBySKU);
-    }
-    */
-
     private Map<String, PricingDataStructure> populatePrice(Map<String, Object> resultsFromExternalServiceBySKU)
     {
         Map<String, PricingDataStructure> pricingDataFromExternalServiceBySKU = new Map<String, PricingDataStructure>();
@@ -454,83 +524,72 @@ public class ServicePricingDefault extends commercestorepricing.PricingService
         return pricingDataFromExternalServiceBySKU;
     }
 
-    /**
-    * @description This doesn't actually make an HTTP call, but it mocks the JSON response of an external Pricing
-    * Service.
-    *
-    * @param skus A set of SKUs to get pricing data
-    * @return Map containing PricingData for each SKU passed into this method
-    */
-    private Map<String, PricingDataStructure> getPricingFromExternalService(Set<String> skus)
+    /*  Uses the org's WebStore pricing service over the wire via REST API to drive the point home. This is something
+     *  you wouldn't and shouldn't do in the real world until all other options have been exhausted first, but this
+     *  functions as a working model so you can see how a real pricing request might work without depending on something
+     *  like a Heroku service. I also have a Postman collection here if you'd like to learn more about these kind of APIs:
+     *  https://github.com/tzarrsf/b2b-commerce-postman-setup-with-example-files
+     */
+    private Map<String, PricingDataStructure> getPricingFromExternalService(Set<String> productIdList)
     {
+        /***
+         *  Documentation for the endpoint:
+         *  https://developer.salesforce.com/docs/atlas.en-us.chatterapi.meta/chatterapi/connect_resources_commerce_webstore_pricing_products.htm
+         *  However, this is the only format I could get working:
+         *  /services/data/v61.0/commerce/webstores/0ZEbn000002qasfGAA/pricing/products?&effectiveAccountId=001bn000017bBQ6AAM
+         */
         System.debug('### getPricingFromExternalService in CartCalcPricingDefault started...');
+        String productIdsJoinedByComma = String.join(new List<String>(productIdList), ',');
+        String pricingEndpoint = 'commerce/webstores/' + this.webStoreId;
+        pricingEndpoint += '/pricing/products?';
+        pricingEndpoint += 'effectiveAccountId=' + this.effectiveAccountId;
 
-        Http http = new Http();
-        HttpRequest request = new HttpRequest();
-        Set<String> encodedSkus = new Set<String>();
+        System.debug('### pricingEndpoint calculated as: "' + pricingEndpoint + '"');
 
-        for (String sku : skus)
+        /***
+         *  This is the format of what needs to be sent over in the body of the post for a pricing call. While we could
+         *  hack it in with strings, it's not wonderful example code so we'll build off some structures so those learning
+         *  to code or improve their Apex code skills can see the serialization operations and thinking in action.
+         */
+        String exampleJson = '{';
+        exampleJson += '"   pricingLineItems": [';
+        exampleJson += '        {';
+        exampleJson += '            "productId":"01txx000000000V"';
+        exampleJson += '        },';
+        exampleJson += '        {';
+        exampleJson += '            "productId":"01txx000000000W"';
+        exampleJson += '        },';
+        exampleJson += '        {';
+        exampleJson += '            "productId":"01txx000000000A"';
+        exampleJson += '        }';
+        exampleJson += '    ]';
+        exampleJson += '}';
+
+        // This is a practice of using 'proper' Apex objects on the SF side to serialize to JSON and then send on the wire
+        List<PricingLineItem> pricingLineItemList = new List<PricingLineItem>();
+
+        for(String productId : productIdList)
         {
-            encodedSkus.add(EncodingUtil.urlEncode(sku, 'UTF-8'));
+            pricingLineItemList.add(new PricingLineItem(productId));
         }
 
-        // To access the service below you may need to add endpoint = https://example.com in Setup | Security | Remote site settings.
-        request.setEndpoint('https://example.com/get-sales-prices?skus=' + JSON.serialize(encodedSkus));
-        request.setMethod('GET');
-        HttpResponse r = http.send(request);
+        PricingRequestBody pricingRequestBody = new PricingRequestBody(pricingLineItemList);
+        String body = JSON.serialize(pricingRequestBody);
+        System.debug('### body JSON: "' + body + '"');
 
-        if (r.getStatusCode() != 200)
-        {
-            // return null in case of not successful response from 3rd party service
-            System.debug('### Did not receive pricing data. Call to external service was not successful.');
-            return null;
-        }
+        // Send it over
+        String pricingJson = this.handleLocalHttpPostRequest(pricingEndpoint, body);
+        System.debug('### pricingJson from service: "' + pricingJson + '"');
+
+        // TODO: Wrap this up and confirm comments are correct!
+        // The response may include the negotiated as well as list price for each SKU. It looks something like this:
+        // {"ProductID1":{"listPrice":10,"unitPrice":5}};
 
         System.debug('### getPricingFromExternalService in CartCalcPricingDefault complete.');
-        return (Map<String, PricingDataStructure>) JSON.deserialize(r.getBody(), Map<String, PricingDataStructure>.class);
+        return (Map<String, PricingDataStructure>) JSON.deserialize(pricingJson, Map<String, PricingDataStructure>.class);
     }
 
-
-    // TODO: Make this use the REST API for WebStore Pricing
-    // This is simply a mocking of an external service call. Customers will have to change this logic to
-    // call their respective services.
-    private Map<String, PricingDataStructure> getPricesFromExternalService(Set<String> productIds)
-    {
-        Http http = new Http();
-        HttpRequest request = new HttpRequest();
-        Integer SuccessfulHttpRequest = 200;
-
-        // Encode the product IDs to avoid any invalid characters in the URL.
-        Set<String> encodedProductIDs = new Set<String>();
-
-        for (String productID : productIds)
-        {
-            encodedProductIDs.add(EncodingUtil.urlEncode(productID, 'UTF-8'));
-        }
-
-        // To access the service below, you may need to add endpoint =
-        // httpHost in Setup > Security > Remote site settings.
-        String requestURL =
-        externalPricingServiceHost+'/get-prices?skus=' +  JSON.serialize(encodedProductIDs);
-        request.setEndpoint(requestURL);
-        request.setMethod('GET');
-        HttpResponse response = http.send(request);
-
-        // If the request is successful, parse the JSON response; The response includes the negotiated
-        // as well as list price for each SKU. It looks something like this: response =
-        // {"ProductID1":{"listPrice":10,"unitPrice":5}};
-        if (response.getStatusCode() == SuccessfulHttpRequest)
-        {
-            Map<String, Object> resultsFromExternalServiceBySKU = (Map<String, Object>) JSON.deserializeUntyped(response.getBody());
-            return populatePrice(resultsFromExternalServiceBySKU);
-        }
-        else
-        {
-            throw new CalloutException('There was a problem with the request. Error: ' + response.getStatusCode());
-        }
-    }
-
-    // TODO: Why is this code even here? Do we really need to write a method for the '+' operator
+    // TODO: Go back to where this is demonstrated and break out the behavior with a DEMO_ variable
     @TestVisible
     private String appendField(String prefix, String field)
     {
@@ -574,6 +633,33 @@ public class ServicePricingDefault extends commercestorepricing.PricingService
         public Decimal getUnitPrice()
         {
             return this.unitPrice;
+        }
+    }
+
+    /**
+     *  Structure for a line item in a POST request for inventory levels
+     */
+    class PricingLineItem
+    {
+        private String productId;
+
+        PricingLineItem(String productId)
+        {
+            this.productId = productId;
+        }
+    }
+
+    /**
+     *  Structure for a proper serialization to JSON for a POST request when requesting inventory levels. Could
+     *  we have hacked this in with string concatenation, yes, but it's not great form and this is example code.
+     */
+    class PricingRequestBody
+    {
+        private List<PricingLineItem> pricingLineItems;
+
+        PricingRequestBody(List<PricingLineItem> pricingLineItems)
+        {
+            this.pricingLineItems = pricingLineItems;
         }
     }
 }
