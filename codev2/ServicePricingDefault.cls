@@ -535,7 +535,7 @@ public class ServicePricingDefault extends commercestorepricing.PricingService
         /***
          *  Documentation for the endpoint:
          *  https://developer.salesforce.com/docs/atlas.en-us.chatterapi.meta/chatterapi/connect_resources_commerce_webstore_pricing_products.htm
-         *  However, this is the only format I could get working:
+         *  This is the only format I could get working with both a Pricing calculator and a Pricing Service mapped:
          *  /services/data/v61.0/commerce/webstores/0ZEbn000002qasfGAA/pricing/products?&effectiveAccountId=001bn000017bBQ6AAM
          */
         System.debug('### getPricingFromExternalService in CartCalcPricingDefault started...');
