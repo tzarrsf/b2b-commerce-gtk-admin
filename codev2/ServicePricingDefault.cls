@@ -42,7 +42,7 @@ public class ServicePricingDefault extends commercestorepricing.PricingService
 
     /*  For demonstration purposes only: Set this to true to see a networked call take place against your org,
     false to pull static data from the Capricorn sample products */
-    private static final Boolean DEMO_USE_EXTERNAL_SERVICE = true;
+    private static final Boolean DEMO_USE_EXTERNAL_SERVICE = false;
 
     /*  For demonstration purposes only: Set this to true to leave the last Capricorn sample out of the mapping
     to demonstrate how a missing pricing is handled. */
