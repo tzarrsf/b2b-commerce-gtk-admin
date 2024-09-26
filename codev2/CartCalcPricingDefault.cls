@@ -28,7 +28,7 @@
  *
  * @author            : Tom Zarr
  * @group             : Salesforce Commerce Partner Delivery Success (2024)
- * @last modified on  : 09-19-2024
+ * @last modified on  : 09-26-2024
  * @last modified by  : Tom Zarr
 **/
 
@@ -179,8 +179,8 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
             {
                 // No data returned means there is an issue with underlying 3rd party service. Populate generic error message for the Buyer.
                 CartExtension.CartValidationOutput cvo = new CartExtension.CartValidationOutput(
-                CartExtension.CartValidationOutputTypeEnum.PRICING,
-                CartExtension.CartValidationOutputLevelEnum.ERROR);
+                    CartExtension.CartValidationOutputTypeEnum.PRICING,
+                    CartExtension.CartValidationOutputLevelEnum.ERROR);
                 cvo.setMessage('We are not able to process your cart. Please contact support.');
                 cart.getCartValidationOutputs().add(cvo);
                 System.debug('### calculate in CartCalcPricingDefault did not receive data');
@@ -352,18 +352,30 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
     /**
     * Sets pricing data returned by external service to Salesforce's CartItem
     */
-    private void setPricingFieldsOnCart(CartExtension.CartItem item, PricingDataStructure pricingLineItem)
+    private void setPricingFieldsOnCart(CartExtension.CartItem cartItem, PricingDataStructure pricingLineItem)
     {
 
         System.debug('setPricingFieldsOnCart in CartCalcPricingDefault started...');
 
         if (pricingLineItem != null)
         {
-            item.setSalesPrice(pricingLineItem.getUnitPrice());
-            item.setListPrice(pricingLineItem.getListPrice());
-            item.setAdjustmentAmount(pricingLineItem.getTotalAdjustmentAmount());
-            item.setTotalListPrice(pricingLineItem.getTotalListPrice());
-            item.setTotalPrice(pricingLineItem.getTotalPrice());
+            if(false)
+            {
+                cartItem.setSalesPrice(pricingLineItem.getUnitPrice());
+                cartItem.setListPrice(pricingLineItem.getListPrice());
+                cartItem.setAdjustmentAmount(pricingLineItem.getTotalAdjustmentAmount());
+                cartItem.setTotalListPrice(pricingLineItem.getTotalListPrice());
+                cartItem.setTotalPrice(pricingLineItem.getTotalPrice());
+            }
+            else
+            {
+                Double quantity = cartItem.getQuantity()==null ? 0.00 : cartItem.getQuantity();
+                cartItem.setSalesPrice(pricingLineItem.getUnitPrice() * quantity);
+                cartItem.setListPrice(pricingLineItem.getListPrice() * quantity);
+                cartItem.setAdjustmentAmount(pricingLineItem.getTotalAdjustmentAmount() * quantity);
+                cartItem.setTotalListPrice(pricingLineItem.getTotalListPrice() * quantity);
+                cartItem.setTotalPrice(pricingLineItem.getTotalPrice() * quantity);
+            }
         }
 
         System.debug('setPricingFieldsOnCart in CartCalcPricingDefault complete.');
