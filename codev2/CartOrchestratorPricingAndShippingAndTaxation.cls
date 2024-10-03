@@ -49,9 +49,26 @@ global class CartOrchestrator extends CartExtension.CartCalculate
             }
         }
 
-        if (runTaxes)
-        {
-            System.debug('### runTaxes');
+        if (runShipping) {
+            System.debug('### runShipping in CartOrchestrator');
+            shipping(calculatorRequest);
+
+            if (hasErrorLevelCartValidationOutput(cart.getCartValidationOutputs(), CartExtension.CartValidationOutputTypeEnum.SHIPPING)) {
+                return;
+            }
+        }
+
+        if (runPostShipping) {
+            System.debug('### runPostShipping in CartOrchestrator');
+            postShipping(calculatorRequest);
+
+            if (hasErrorLevelCartValidationOutput(cart.getCartValidationOutputs(), CartExtension.CartValidationOutputTypeEnum.SYSTEM_ERROR)) {
+                return;
+            }
+        }
+
+        if (runTaxes) {
+            System.debug('### runTaxes in CartOrchestrator');
             taxes(calculatorRequest);
         }
     }
