@@ -28,7 +28,7 @@
  *
  * @author            : Tom Zarr
  * @group             : Salesforce Commerce Partner Delivery Success (2024)
- * @last modified on  : 09-26-2024
+ * @last modified on  : 10-02-2024
  * @last modified by  : Tom Zarr
 **/
 
@@ -71,19 +71,20 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
         super();
         capricornSamplesStaticPricing = new Map<String, PricingDataStructure>();
         // Note on the PricingDataStructure ctor's parameters: (productCode, unitPrice, listPrice, totalAdjustmentAmount, totalListPrice, totalPrice)
-        capricornSamplesStaticPricing.put('PS-EL', new PricingDataStructure('PS-EL', 549.99, 599.99, 50.00, 549.99, 549.99));
-        capricornSamplesStaticPricing.put('TR-COFMAC-001', new PricingDataStructure('TR-COFMAC-001', 449.99, 499.99, 50.00, 449.99, 449.99));
-        capricornSamplesStaticPricing.put('ID-PEM', new PricingDataStructure('ID-PEM', 249.99, 259.99, 0.00, 249.99, 249.99));
-        capricornSamplesStaticPricing.put('B-C-COFMAC-001', new PricingDataStructure('B-C-COFMAC-001', 484.99, 549.99, 0.00, 484.99, 484.99));
-        capricornSamplesStaticPricing.put('CR-DEC', new PricingDataStructure('CR-DEC', 15.99, 22.49, 15.99, 15.99, 15.99));
-        capricornSamplesStaticPricing.put('ESP-IOT-1', new PricingDataStructure('ESP-IOT-1', 649.99, 679.99, 649.99, 649.99, 649.99));
-        capricornSamplesStaticPricing.put('MRC-1', new PricingDataStructure('MRC-1', 17.99, 24.99, 17.99, 17.99, 17.99));
-        capricornSamplesStaticPricing.put('PS-INF', new PricingDataStructure('PS-INF', 429.99, 484.99, 429.99, 429.99, 429.99));
+        // (String quantity, String productCode, Decimal listPrice, Decimal lineTotalAmount)
+        capricornSamplesStaticPricing.put('PS-EL', new PricingDataStructure('PS-EL', 549.99, 599.99));
+        capricornSamplesStaticPricing.put('TR-COFMAC-001', new PricingDataStructure('TR-COFMAC-001', 449.99, 499.99));
+        capricornSamplesStaticPricing.put('ID-PEM', new PricingDataStructure('ID-PEM', 249.99, 259.99));
+        capricornSamplesStaticPricing.put('B-C-COFMAC-001', new PricingDataStructure('B-C-COFMAC-001', 484.99, 549.99));
+        capricornSamplesStaticPricing.put('CR-DEC', new PricingDataStructure('CR-DEC', 15.99, 22.49));
+        capricornSamplesStaticPricing.put('ESP-IOT-1', new PricingDataStructure('ESP-IOT-1', 649.99, 679.99));
+        capricornSamplesStaticPricing.put('MRC-1', new PricingDataStructure('MRC-1', 17.99, 24.99));
+        capricornSamplesStaticPricing.put('PS-INF', new PricingDataStructure('PS-INF', 429.99, 484.99));
 
         // The logic to leave a product out to demonstrate error handling or behaviors when prices are missing
         if(!DEMO_MISSING_PRICE_ITEM)
         {
-            capricornSamplesStaticPricing.put('DRW-1', new PricingDataStructure('DRW-1', 14.99, 19.99, 14.99, 14.99, 14.99));
+            capricornSamplesStaticPricing.put('DRW-1', new PricingDataStructure('DRW-1', 14.99, 19.99));
         }
     }
 
@@ -359,23 +360,25 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
 
         if (pricingLineItem != null)
         {
-            if(false)
-            {
-                cartItem.setSalesPrice(pricingLineItem.getUnitPrice());
-                cartItem.setListPrice(pricingLineItem.getListPrice());
-                cartItem.setAdjustmentAmount(pricingLineItem.getTotalAdjustmentAmount());
-                cartItem.setTotalListPrice(pricingLineItem.getTotalListPrice());
-                cartItem.setTotalPrice(pricingLineItem.getTotalPrice());
-            }
-            else
-            {
-                Double quantity = cartItem.getQuantity()==null ? 0.00 : cartItem.getQuantity();
-                cartItem.setSalesPrice(pricingLineItem.getUnitPrice() * quantity);
-                cartItem.setListPrice(pricingLineItem.getListPrice() * quantity);
-                cartItem.setAdjustmentAmount(pricingLineItem.getTotalAdjustmentAmount() * quantity);
-                cartItem.setTotalListPrice(pricingLineItem.getTotalListPrice() * quantity);
-                cartItem.setTotalPrice(pricingLineItem.getTotalPrice() * quantity);
-            }
+            /*
+            Basic pricing 101 according to Tom Z:
+            This is a very basic example, but it  may help to think of a phsycial tag where someone has crossed
+            out the price along with a receipt printout.
+            ----------------------------------------------------------------------------------------------------
+            List Price: Make the buyer feel as if they're getting a deal by crossing a price out (aka striekthrough price)
+            Sales Price = The sale price of the unit (actual charge & less than the list / strikethrough price)
+            Total List Price = This is the list price multipled by the quantity
+            Total Price = The Sales price multiplied by the quantity
+            Unit Adjusted Price With Item Adjustment = The per unit price adjusted for a single item based on all discounts.
+            This is the $17.99/item you would see in a stock cart at the line item level.
+            */
+
+            Double quantity = cartItem.getQuantity() == null ? 0.00 : cartItem.getQuantity();
+            cartItem.setListPrice(pricingLineItem.getListPrice());
+            cartItem.setTotalListPrice(pricingLineItem.getListPrice() * quantity);
+            cartItem.setSalesPrice(pricingLineItem.getSalesPrice());
+            cartItem.setTotalPrice(pricingLineItem.getSalesPrice() * quantity);
+            cartItem.setUnitAdjustedPriceWithItemAdj(pricingLineItem.getSalesPrice());
         }
 
         System.debug('setPricingFieldsOnCart in CartCalcPricingDefault complete.');
@@ -429,35 +432,39 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
 
         for(String sku: skus)
         {
-            //PricingDataStructure pricingData = new PricingDataStructure(10, 10, 9, 20, 20);
+            System.debug('#### sku: ' + sku);
+
             PricingDataStructure pricingData = capricornSamplesStaticPricing.get(sku);
 
-            /*  When there's no pricing data we can try to use a fallback price or let an error shown later */
+            /*  When there's no pricing data we can try to use a fallback price or let an error show later */
             if(pricingData == null)
             {
+                System.debug('#### sku: ' + sku + ' in pricingData == null');
+
                 /*  This code is for demonstrative purposes of a fallback price- not real world code. A better way to
                 handle this situation would be to get the price from another source so it's a semi-accurate estimate
                 and not an arbitrary value. This also indicates a potential problem with the implementation as you
                 can't sell things that aren't priced. */
                 if(DEMO_MISSING_PRICE_ITEM)
                 {
+                    System.debug('#### sku: ' + sku + ' in DEMO_MISSING_PRICE_ITEM');
+
                     System.debug('### Pricing data not found in getPricingFromStaticResponse with sku value: ' + sku + '". Resorting to default value: "' + PRICE_NOT_FOUND_DEFAULT_VALUE + '"');
-                    pricingData = new PricingDataStructure(sku, PRICE_NOT_FOUND_DEFAULT_VALUE,
-                        PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE);
+                    pricingData = new PricingDataStructure(sku, PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE);
                 }
-                else
-                {
+                //else
+                //{
                     /*  Push null on to the map - it's dealt with later in the display if a product with missing
                     pricing lives in the cart. Look in the applyPricesToCartItems method and you'll see something
                     like this: cvo.setMessage('No price available for the SKU in the Cart.'); */
-                    dataFromExternalService.put(sku, pricingData);
-                }
+                    //dataFromExternalService.put(sku, pricingData);
+                //}
             }
-            else
-            {
+            //else
+            //{
                 // We did get pricing for the SKU so put it in the map
-                dataFromExternalService.put(sku, pricingData);
-            }
+            dataFromExternalService.put(sku, pricingData);
+            //}
         }
 
         System.debug('### getPricingFromStaticResponse in CartCalcPricingDefault complete.');
@@ -469,56 +476,36 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
     class PricingDataStructure
     {
         private String productCode;
-        private Decimal unitPrice;
+        private Decimal salesPrice;
         private Decimal listPrice;
-        private Decimal totalAdjustmentAmount;
-        private Decimal totalListPrice;
-        private Decimal totalPrice;
 
         public PricingDataStructure()
         {
-            productCode = '';
-            unitPrice = CartCalcPricingDefault.ZERO_DECIMAL;
-            listPrice = CartCalcPricingDefault.ZERO_DECIMAL;
-            totalAdjustmentAmount = CartCalcPricingDefault.ZERO_DECIMAL;
-            totalListPrice = CartCalcPricingDefault.ZERO_DECIMAL;
-            totalPrice = CartCalcPricingDefault.ZERO_DECIMAL;
+            this.productCode = '';
+            this.salesPrice = CartCalcPricingDefault.ZERO_DECIMAL;
+            this.listPrice = CartCalcPricingDefault.ZERO_DECIMAL;
         }
 
-        public PricingDataStructure(String productCode, Decimal unitPrice, Decimal listPrice, Decimal totalAdjustmentAmount,
-            Decimal totalListPrice, Decimal totalPrice)
+        public PricingDataStructure(String productCode, Decimal salesPrice, Decimal listPrice)
         {
             this.productCode = productCode;
-            this.unitPrice = unitPrice;
+            this.salesPrice = salesPrice;
             this.listPrice = listPrice;
-            this.totalAdjustmentAmount = totalAdjustmentAmount;
-            this.totalListPrice = totalListPrice;
-            this.totalPrice = totalPrice;
         }
 
-        public Decimal getUnitPrice()
+        public String getProductCode()
         {
-            return this.unitPrice;
+            return this.productCode;
+        }
+
+        public Decimal getSalesPrice()
+        {
+            return this.salesPrice;
         }
 
         public Decimal getListPrice()
         {
             return this.listPrice;
-        }
-
-        public Decimal getTotalAdjustmentAmount()
-        {
-            return this.totalAdjustmentAmount;
-        }
-
-        public Decimal getTotalListPrice()
-        {
-            return this.totalListPrice;
-        }
-
-        public Decimal getTotalPrice()
-        {
-            return this.totalPrice;
         }
     }
 }
