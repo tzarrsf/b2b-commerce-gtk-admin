@@ -42,7 +42,7 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
 
     /*  For demostration purposes only: Set this to true to leave the last Capricorn sample out of the mapping
     to demonstrate how a missing pricing is handled. */
-    private static final Boolean DEMO_MISSING_PRICE_ITEM = true;
+    private static final Boolean DEMO_MISSING_PRICE_ITEM = false;
 
     // Set this to true to rethrow the error in the catch block
     private static final Boolean BUBBLE_EXCEPTIONS = true;
@@ -452,19 +452,9 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
                     System.debug('### Pricing data not found in getPricingFromStaticResponse with sku value: ' + sku + '". Resorting to default value: "' + PRICE_NOT_FOUND_DEFAULT_VALUE + '"');
                     pricingData = new PricingDataStructure(sku, PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE);
                 }
-                //else
-                //{
-                    /*  Push null on to the map - it's dealt with later in the display if a product with missing
-                    pricing lives in the cart. Look in the applyPricesToCartItems method and you'll see something
-                    like this: cvo.setMessage('No price available for the SKU in the Cart.'); */
-                    //dataFromExternalService.put(sku, pricingData);
-                //}
             }
-            //else
-            //{
-                // We did get pricing for the SKU so put it in the map
+
             dataFromExternalService.put(sku, pricingData);
-            //}
         }
 
         System.debug('### getPricingFromStaticResponse in CartCalcPricingDefault complete.');
