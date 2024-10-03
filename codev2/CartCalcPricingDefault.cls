@@ -28,7 +28,7 @@
  *
  * @author            : Tom Zarr
  * @group             : Salesforce Commerce Partner Delivery Success (2024)
- * @last modified on  : 10-02-2024
+ * @last modified on  : 10-03-2024
  * @last modified by  : Tom Zarr
 **/
 
@@ -432,23 +432,17 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
 
         for(String sku: skus)
         {
-            System.debug('#### sku: ' + sku);
-
             PricingDataStructure pricingData = capricornSamplesStaticPricing.get(sku);
 
             /*  When there's no pricing data we can try to use a fallback price or let an error show later */
             if(pricingData == null)
             {
-                System.debug('#### sku: ' + sku + ' in pricingData == null');
-
                 /*  This code is for demonstrative purposes of a fallback price- not real world code. A better way to
                 handle this situation would be to get the price from another source so it's a semi-accurate estimate
                 and not an arbitrary value. This also indicates a potential problem with the implementation as you
                 can't sell things that aren't priced. */
                 if(DEMO_MISSING_PRICE_ITEM)
                 {
-                    System.debug('#### sku: ' + sku + ' in DEMO_MISSING_PRICE_ITEM');
-
                     System.debug('### Pricing data not found in getPricingFromStaticResponse with sku value: ' + sku + '". Resorting to default value: "' + PRICE_NOT_FOUND_DEFAULT_VALUE + '"');
                     pricingData = new PricingDataStructure(sku, PRICE_NOT_FOUND_DEFAULT_VALUE, PRICE_NOT_FOUND_DEFAULT_VALUE);
                 }
@@ -461,8 +455,26 @@ public class CartCalcPricingDefault extends CartExtension.PricingCartCalculator
         return dataFromExternalService;
     }
 
-    /*  Structure to store pricing data retrieved from an external service or static example. This
-     *  class simplifies our ability to access the data when storing it in Salesforce's CartItem. */
+    /*  Simple structure to store pricing data retrieved from an external service or static example. This
+     *  class simplifies our ability to access data when storing it in Salesforce's CartItem. This is not
+     *  a comprehensive example. Here's a list of amount-related setters available on CartItem:
+     *      setListPrice
+     *      setSalesPrice
+     *      setUnitItemAdjustmentAmount
+     *      setUnitAdjustedPriceWithItemAdj
+     *      setTotalListPrice
+     *      setTotalPrice
+     *      setNetUnitPrice
+     *      setGrossUnitPrice
+     *      setTotalPromoAdjustmentAmount
+     *      setTotalLineAmount
+     *      setAdjustmentTaxAmount
+     *      setTotalPriceAfterAllAdjustments
+     *      setUnitAdjustmentAmount
+     *      setTotalAdjustmentAmount
+     *      setUnitPriceAfterAdjustments
+     *      setNetUnitPriceAfterAdjustments
+     */
     class PricingDataStructure
     {
         private String productCode;
