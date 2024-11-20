@@ -12,7 +12,7 @@
  * @last modified on  : 11-20-2024
  * @last modified by  : Tom Zarr
 **/
-public class ShippingServiceDefault extends CartExtension.ShippingCartCalculator
+public class ServiceShippingDefault extends CartExtension.ShippingCartCalculator
 {
     // You MUST change this to be your service or you must launch your own Third Party Service
     // and add the host in Setup | Security | Remote site settings.
@@ -53,7 +53,7 @@ public class ShippingServiceDefault extends CartExtension.ShippingCartCalculator
     {
         try
         {
-            System.debug('## INVOCATION: ShippingServiceDefault.calculate called.');
+            System.debug('## INVOCATION: ServiceShippingDefault.calculate called.');
 
             CartExtension.Cart cart = request.getCart();
             /***
@@ -145,7 +145,7 @@ public class ShippingServiceDefault extends CartExtension.ShippingCartCalculator
                         else
                         {
                             // TODO: Put this into a method like getShippingOptionsAndRatesFromOrg
-                            System.debug('## INVOCATION: ShippingServiceDefault.calculate using org-based values.');
+                            System.debug('## INVOCATION: ServiceShippingDefault.calculate using org-based values.');
 
                             // 1. Ground delivery = 10.99 fee
                             CartExtension.CartDeliveryGroupMethod cartDeliveryGroupMethod01 = new CartExtension.CartDeliveryGroupMethod('Ground Shipping', 10.99, shippingProduct);
@@ -163,7 +163,7 @@ public class ShippingServiceDefault extends CartExtension.ShippingCartCalculator
                 }
             }
 
-            System.debug('## SUCCESS: ShippingServiceDefault.calculate');
+            System.debug('## SUCCESS: ServiceShippingDefault.calculate');
         }
         catch (Exception e)
         {
@@ -173,7 +173,7 @@ public class ShippingServiceDefault extends CartExtension.ShippingCartCalculator
              * errors. In that case, throw the exception here and make sure that a notification system is
              * in place to let the admin know that the error occurred.
              */
-            System.debug('## EXCEPTION THROWN: ShippingServiceDefault.calculate: ' + e.getMessage());
+            System.debug('## EXCEPTION THROWN: ServiceShippingDefault.calculate: ' + e.getMessage());
         }
     }
 
@@ -320,7 +320,7 @@ public class ShippingServiceDefault extends CartExtension.ShippingCartCalculator
          public Boolean isActive() { return isActive; }
     }
 
-    private void populateCartDeliveryGroupMethodWithShippingOptions(List<ShippingServiceDefault.ShippingOptionsAndRatesFromExternalService> shippingOptions,
+    private void populateCartDeliveryGroupMethodWithShippingOptions(List<ServiceShippingDefault.ShippingOptionsAndRatesFromExternalService> shippingOptions,
         CartExtension.CartDeliveryGroupMethodList cartDeliveryGroupMethodCollection, String shippingProduct,
         CartExtension.CartValidationOutputList cartValidationOutputCollection)
     {
