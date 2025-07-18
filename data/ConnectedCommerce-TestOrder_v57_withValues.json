@@ -1,0 +1,321 @@
+{
+  "allOrNone": true,
+  "compositeRequest": [
+    {
+      "method": "POST",
+      "url": "/services/data/v57.0/sobjects/Account",
+      "referenceId": "refAccount",
+      "body": {
+        "FirstName": "John",
+        "LastName": "Doe",
+        "PersonEmail": "john@doe.com",
+        "BillingStreet": "1166 W Newport Center Dr",
+        "BillingCity": "Deerfield Beach",
+        "BillingPostalCode": "33442",
+        "BillingState": "FL",
+        "BillingCountry": "us",
+        "Phone": "3333333333"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/services/data/v57.0/sobjects/Order",
+      "referenceId": "refOrder",
+      "body": {
+        "Pricebook2Id": "01sal000002bv4bAAA",
+        "Name": "John Doe",
+        "Status": "Draft",
+        "EffectiveDate": "2025-07-17",
+        "OrderReferenceNumber": "OMS-HEALTHCHECK-1",
+        "BillingStreet": "1166 W Newport Center Dr",
+        "BillingCity": "Deerfield Beach",
+        "BillingState": "FL",
+        "BillingPostalCode": "33442",
+        "BillingCountry": "us",
+        "BillingPhoneNumber": "3333333333",
+        "OrderedDate": "2025-07-17T17:15:58.000Z",
+        "BillingEmailAddress": "john@doe.com",
+        "AccountId": "@{refAccount.id}",
+		"SalesChannelId": "0bIal000000XhfhEAC"
+        }
+    },
+    {
+      "method": "POST",
+      "url": "/services/data/v57.0/sobjects/PaymentGroup",
+      "referenceId": "refPaymentGroup",
+      "body": {
+        "SourceObjectId": "@{refOrder.id}"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/services/data/v57.0/composite/sobjects",
+      "referenceId": "refGroup0",
+      "body": {
+        "allOrNone": true,
+        "records": [
+          {
+            "attributes": {
+              "type": "Product2"
+            },
+            "Description": "WOMEN'S TORPEDO JACKET",
+            "Name": "WOMEN'S TORPEDO JACKET",
+            "StockKeepingUnit": "OMS-HEALTHCHECK-A",
+            "ProductCode": "2072100",
+            "IsActive": true
+          },
+          {
+            "attributes": {
+              "type": "Product2"
+            },
+            "Description": "MICA FL 1",
+            "Name": "MICA FL 1",
+            "StockKeepingUnit": "OMS-HEALTHCHECK-B",
+            "ProductCode": "4409100",
+            "IsActive": true
+          },
+          {
+            "attributes": {
+              "type": "CardPaymentMethod"
+            },
+            "CardType": "Visa",
+            "CardHolderName": "John Doe",
+            "ExpiryYear": "2020",
+            "ExpiryMonth": "1",
+            "CardCategory": "CreditCard",
+            "Status": "Active",
+            "AccountId": "@{refAccount.id}",
+            "ProcessingMode": "External"
+          }
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/services/data/v57.0/composite/sobjects",
+      "referenceId": "refGroup1",
+      "body": {
+        "allOrNone": true,
+        "records": [
+          {
+            "attributes": {
+              "type": "PricebookEntry"
+            },
+            "Pricebook2Id": "01sal000002bv4bAAA",
+            "UnitPrice": 79.2,
+            "Product2Id": "@{refGroup0[0].id}"
+          },
+          {
+            "attributes": {
+              "type": "PricebookEntry"
+            },
+            "Pricebook2Id": "01sal000002bv4bAAA",
+            "UnitPrice": 255.2,
+            "Product2Id": "@{refGroup0[1].id}"
+          },
+          {
+            "attributes": {
+              "type": "OrderDeliveryGroup"
+            },
+            "EmailAddress": "john@doe.com",
+            "DeliverToCity": "Deerfield Beach",
+            "DeliverToCountry": "us",
+            "DeliverToName": "John Doe",
+            "DeliverToPostalCode": "33442",
+            "DeliverToState": "FL",
+            "DeliverToStreet": "1166 W Newport Center Dr",
+            "PhoneNumber": "3333333333",
+            "OrderDeliveryMethodId": "2Dmal000001dgfrCAA",
+            "OrderId": "@{refOrder.id}"
+          },
+          {
+            "attributes": {
+              "type": "OrderAdjustmentGroup"
+            },
+            "Name": "PromotionTest_20%offOrderAmountOver100",
+            "Description": "PromotionTest_20%offOrderAmountOver100",
+            "Type": "Header",
+            "OrderId": "@{refOrder.id}"
+          },
+          {
+            "attributes": {
+              "type": "PaymentAuthorization"
+            },
+            "Amount": 291.39,
+            "ProcessingMode": "External",
+            "Status": "Processed",
+            "PaymentGroupId": "@{refPaymentGroup.id}",
+            "AccountId": "@{refAccount.id}",
+            "PaymentMethodId": "@{refGroup0[2].id}"
+          }
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/services/data/v57.0/composite/sobjects",
+      "referenceId": "refGroup2",
+      "body": {
+        "allOrNone": true,
+        "records": [
+          {
+            "attributes": {
+              "type": "OrderItem"
+            },
+            "Description": "WOMEN'S TORPEDO JACKET",
+            "Type": "Order Product",
+            "Quantity": 1,
+            "TotalLineAmount": 79.2,
+            "LineNumber": 1,
+            "UnitPrice": 79.2,
+            "OrderId": "@{refOrder.id}",
+            "OrderDeliveryGroupId": "@{refGroup1[2].id}",
+            "PricebookEntryId": "@{refGroup1[0].id}",
+            "Product2Id": "@{refGroup0[0].id}"
+          },
+          {
+            "attributes": {
+              "type": "OrderItem"
+            },
+            "Description": "MICA FL 1",
+            "Type": "Order Product",
+            "Quantity": 1,
+            "TotalLineAmount": 255.2,
+            "LineNumber": 2,
+            "UnitPrice": 255.2,
+            "OrderId": "@{refOrder.id}",
+            "OrderDeliveryGroupId": "@{refGroup1[2].id}",
+            "PricebookEntryId": "@{refGroup1[1].id}",
+            "Product2Id": "@{refGroup0[1].id}"
+          },
+          {
+            "attributes": {
+              "type": "OrderItem"
+            },
+            "Description": "Shipping",
+            "Product2Id": "01tal0000092qAbAAI",
+            "Type": "Delivery Charge",
+            "Quantity": 1,
+            "TotalLineAmount": 9.99,
+            "LineNumber": 1000,
+            "UnitPrice": 9.99,
+			"PricebookEntryId": "01ual0000035ktJAAQ",
+            "OrderId": "@{refOrder.id}",
+            "OrderDeliveryGroupId": "@{refGroup1[2].id}"
+          },
+          {
+            "attributes": {
+              "type": "PaymentGatewayLog"
+            },
+            "InteractionStatus": "Success",
+            "InteractionType": "Authorization",
+            "ReferencedEntityId": "@{refGroup1[4].id}"
+          }
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/services/data/v57.0/composite/sobjects",
+      "referenceId": "refGroup3",
+      "body": {
+        "allOrNone": true,
+        "records": [
+          {
+            "attributes": {
+              "type": "OrderItemTaxLineItem"
+            },
+            "Name": "2072100 - Tax",
+            "Type": "Estimated",
+            "Amount": 3.96,
+            "Rate": 0.05,
+            "TaxEffectiveDate": "2025-07-17T17:15:58.000Z",
+            "OrderItemId": "@{refGroup2[0].id}"
+          },
+          {
+            "attributes": {
+              "type": "OrderItemTaxLineItem"
+            },
+            "Name": "4409100 - Tax",
+            "Type": "Estimated",
+            "Amount": 12.76,
+            "Rate": 0.05,
+            "TaxEffectiveDate": "2025-07-17T17:15:58.000Z",
+            "OrderItemId": "@{refGroup2[1].id}"
+          },
+          {
+            "attributes": {
+              "type": "OrderItemTaxLineItem"
+            },
+            "Name": "DeliveryCharge - Tax",
+            "Type": "Estimated",
+            "Amount": 0.5,
+            "Rate": 0.05,
+            "TaxEffectiveDate": "2025-07-17T17:15:58.000Z",
+            "OrderItemId": "@{refGroup2[2].id}"
+          },
+          {
+            "attributes": {
+              "type": "OrderItemAdjustmentLineItem"
+            },
+            "Name": "2072100 - 20%offOrderAmountOver100",
+            "Amount": -15.84,
+            "OrderItemId": "@{refGroup2[0].id}",
+            "OrderAdjustmentGroupId": "@{refGroup1[3].id}"
+          },
+          {
+            "attributes": {
+              "type": "OrderItemAdjustmentLineItem"
+            },
+            "Name": "4409100 - 20%offOrderAmountOver100",
+            "Amount": -51.04,
+            "OrderItemId": "@{refGroup2[1].id}",
+            "OrderAdjustmentGroupId": "@{refGroup1[3].id}"
+          }
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/services/data/v57.0/composite/sobjects",
+      "referenceId": "refGroup4",
+      "body": {
+        "allOrNone": true,
+        "records": [
+          {
+            "attributes": {
+              "type": "OrderItemTaxLineItem"
+            },
+            "Name": "2072100 - Adjustment Tax",
+            "Type": "Estimated",
+            "Amount": -0.79,
+            "Rate": 0.05,
+            "TaxEffectiveDate": "2025-07-17T17:15:58.000Z",
+            "OrderItemId": "@{refGroup2[0].id}",
+            "OrderItemAdjustmentLineItemId": "@{refGroup3[3].id}"
+          },
+          {
+            "attributes": {
+              "type": "OrderItemTaxLineItem"
+            },
+            "Name": "4409100 - Adjustment Tax",
+            "Type": "Estimated",
+            "Amount": -2.55,
+            "Rate": 0.05,
+            "TaxEffectiveDate": "2025-07-17T17:15:58.000Z",
+            "OrderItemId": "@{refGroup2[1].id}",
+            "OrderItemAdjustmentLineItemId": "@{refGroup3[4].id}"
+          }
+        ]
+      }
+    },
+    {
+      "method": "PATCH",
+      "url": "/services/data/v57.0/sobjects/Order/@{refOrder.id}",
+      "referenceId": "refUpdateOrder",
+      "body": {
+        "Status": "Activated"
+      }
+    }
+  ]
+}
