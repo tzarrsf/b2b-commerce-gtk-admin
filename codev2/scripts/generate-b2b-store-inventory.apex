@@ -11,8 +11,9 @@
 // -------- Start user settings -------- //
 
 String storeName = 'B2B Store'; // The store name with products needing inventory levels
+String priceBookName = storeName + ' Price Book'; // The store's oprice book name
 String locationId = 'B2BStore_Warehouse'; // The locationId in OCI for the inventory levels
-Integer maxLevelForAny = 250; // Max level anything can be set to for on hand, future 1 or future 2 if not mapped
+Integer maxLevelForAny = 250; // Max level anything can be set at for onhand, future1 or future2 if not mapped
 
 // Products by SKU that should have on hand set to 0
 List<String> zeroLevelStockKeepingUnits = new List<String>{'123456', '654321'};
@@ -58,12 +59,17 @@ DateTime now = System.now();
 Integer minLevelForAny = 1;
 String groupEligibilityExclusion = '';
 
-// Fetch Product2 records
+// Fetch Product2 records for the store
 List<Product2> products = [
-	SELECT Id, Name, StockKeepingUnit, ProductCode
-	FROM Product2
-	WHERE (NOT StockKeepingUnit = '9999999')
-	AND (NOT StockKeepingUnit LIKE 'OMS%')
+    SELECT Id, Name, StockKeepingUnit, ProductCode
+    FROM Product2
+    WHERE Id IN (
+        SELECT Product2Id
+        FROM PricebookEntry
+        WHERE Pricebook2.Name = :priceBookName
+    )
+    AND (NOT StockKeepingUnit = '9999999')
+    AND (NOT StockKeepingUnit LIKE 'OMS%')
 ];
 
 // Prepare CSV string
