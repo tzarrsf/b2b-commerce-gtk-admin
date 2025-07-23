@@ -4,14 +4,14 @@
  * 						minimum and maximum amounts for products by Code or SKU.
  * @author            : Tom Zarr
  * @group             : Salesforce Commerce Partner Delivery Success (2024)
- * @last modified on  : 07-22-2025
+ * @last modified on  : 07-23-2025
  * @last modified by  : Tom Zarr
 **/
 
 // -------- Start user settings -------- //
 
 String storeName = 'B2B Store'; // The store name with products needing inventory levels
-String priceBookName = storeName + ' Price Book'; // The store's oprice book name
+String priceBookName = storeName + ' Price Book'; // The store's price book name
 String locationId = 'B2BStore_Warehouse'; // The locationId in OCI for the inventory levels
 Integer maxLevelForAny = 250; // Max level anything can be set at for onhand, future1 or future2 if not mapped
 
