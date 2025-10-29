@@ -27,7 +27,7 @@
  *                      10. Refactoring to remove complexity
  * @author            : Tom Zarr
  * @group             : Salesforce Commerce Partner Delivery Success (2024)
- * @last modified on  : 09-20-2024
+ * @last modified on  : 10-29-2025
  * @last modified by  : Tom Zarr
 **/
 
@@ -184,14 +184,20 @@ public class ServicePricingDefault extends commercestorepricing.PricingService
         // System.assert(String.isNotEmpty(webStoreId) && String.isNotBlank((String)webStoreId), 'webStoreId should not be null or blank');
 
         /*  Make a query to the Connect API to get some additional fields for our statically mapped capricorn examples
-        since this class needs Product Ids and those are unique from org to org (shoudl be fetched dynamically) */
-        ConnectApi.ProductOverviewCollection productOverview = ConnectApi.CommerceCatalog.getProducts(
+        since this class needs Product Ids and those are unique from org to org (should be fetched dynamically) */
+
+		ConnectApi.ProductOverviewCollection productOverview = ConnectApi.CommerceCatalog.getProducts(
             webStoreId,
             effectiveAccountId,
             PRODUCT_OVERVIEW_QUERY_PRODUCT_ID_LIST,
             new List<String>(capricornSamplesStaticPricing.keySet()),
             PRODUCT_OVERVIEW_QUERY_FIELDS,
-            PRODUCT_OVERVIEW_QUERY_EXCLUDE_MEDIA
+            PRODUCT_OVERVIEW_QUERY_EXCLUDE_MEDIA,
+			false, //includeQuantityRule
+			false, // includeProductSellingModels
+			false, // includeAttributeSetInfo
+			false, //includeGroupByAttributeVariationInfo
+			'true' // noCache - which is a string for some reason
         );
 
         // TODO: Fix this as it's wonky! - Create a map to easily translate the product Id to a product code
